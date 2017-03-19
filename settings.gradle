@@ -1,0 +1,4 @@
+include 'android-app', 'desktop-app', 'commons'
+project(':android-app').projectDir = new File('android-app')
+project(':desktop-app').projectDir = new File('desktop-app')
+project(':commons').projectDir = new File('commons')
