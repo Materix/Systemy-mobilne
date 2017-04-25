@@ -1,20 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.net.URL?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.BorderPane?>
 
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.Label?>
-<VBox id="root" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0"
-      prefWidth="600.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.121"
-      fx:controller="pl.edu.agh.sm.magneto.desktop.controllers.MainController">
 
-    <Label text="Position:"/>
-    <Label text="Narazie brak" fx:id="positionLabel"/>
-
-    <SplitPane fx:id="splitPane" dividerPositions="" focusTraversable="true" prefHeight="160.0" prefWidth="200.0"
-               VBox.vgrow="ALWAYS"/>
-    <stylesheets>
-        <URL value="@viewer.css"/>
-    </stylesheets>
-</VBox>
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.112" xmlns:fx="http://javafx.com/fxml/1" />

@@ -15,11 +15,12 @@ import pl.edu.agh.sm.magneto.desktop.model.PositionHolder;
 
 public class DataReceiver {
 
-    private static final int PORT = 8192;
+    public static final int PORT = 8192;
     private static final int DATAGRAM_SIZE = 4096;
 
     private DatagramSocket serverSocket;
     private byte[] receiveData = new byte[DATAGRAM_SIZE];
+    private double y = 0;
 
     private Logger logger = Logger.getLogger(DataReceiver.class.getName());
 
@@ -28,18 +29,12 @@ public class DataReceiver {
     }
 
     public PositionData receiveData() throws IOException {
-//        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-//        serverSocket.receive(receivePacket);
-//
-//        PositionData data = PositionData.deserialize(receivePacket.getData());
-//        logger.log(Level.INFO, data.toString());
+        DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+        serverSocket.receive(receivePacket);
 
-//        return data;
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        return new PositionData(Long.toString(System.currentTimeMillis()));
+        PositionData data = PositionData.deserialize(receivePacket.getData());
+        logger.log(Level.INFO, data.toString());
+
+        return data;
     }
 }

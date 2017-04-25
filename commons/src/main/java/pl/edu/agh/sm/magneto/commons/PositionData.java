@@ -5,15 +5,15 @@ import org.apache.commons.lang3.SerializationUtils;
 import java.io.Serializable;
 
 public class PositionData implements Serializable {
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
 
     private final String value;
 
-    private final int x;
+    private final double x;
 
-    private final int y;
+    private final double y;
 
-    private final int z;
+    private final double z;
 
     /**
      * Create new PositionData instance.
@@ -22,22 +22,22 @@ public class PositionData implements Serializable {
      * @param y up-down
      * @param z front-back
      */
-    public PositionData(int x, int y, int z) {
+    public PositionData(double x, double y, double z) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.value = x + ";" + y + ";" + z;
     }
 
-    public int getX() {
+    public double getX() {
         return x;
     }
 
-    public int getY() {
+    public double getY() {
         return y;
     }
 
-    public int getZ() {
+    public double getZ() {
         return z;
     }
 
@@ -57,19 +57,28 @@ public class PositionData implements Serializable {
 
         PositionData that = (PositionData) o;
 
-        return x == that.x && y == that.y && z == that.z;
+        return Double.compare(that.x, x) == 0 && Double.compare(that.y, y) == 0 && Double.compare(that.z, z) == 0;
     }
 
     @Override
     public int hashCode() {
-        int result = x;
-        result = 31 * result + y;
-        result = 31 * result + z;
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(x);
+        result = (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(y);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(z);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
         return result;
     }
 
     public static byte[] serialize(PositionData positionData) {
         return SerializationUtils.serialize(positionData);
+    }
+
+    public byte[] serialize() {
+        return serialize(this);
     }
 
     public static PositionData deserialize(byte[] bytes) {
