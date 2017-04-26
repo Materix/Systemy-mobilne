@@ -55,19 +55,23 @@ public class DesktopRunner extends Application {
 
     PhongMaterial redMaterial;
 
+    Xform phoneSphereXform;
+
     public static void main(String[] args) throws IOException, AWTException {
         launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        startDataReceiver();
+
 
         buildScene();
         buildCamera();
 //        buildAxes();
         buildModel();
 
+
+        startDataReceiver();
 //        Scene scene = new Scene(FXMLLoader.load(DesktopRunner.class.getResource("main.fxml")),
 //                1024, 768, true);
         Scene scene = new Scene(root, 1024, 768, true);
@@ -84,9 +88,9 @@ public class DesktopRunner extends Application {
 
         primaryStage.setOnCloseRequest(t -> {
             receiveDataThread.stop();
-			Platform.exit();
-			System.exit(0);
-		});
+            Platform.exit();
+            System.exit(0);
+        });
     }
 
     private void startDataReceiver() {
@@ -98,22 +102,12 @@ public class DesktopRunner extends Application {
                     PositionData data = dataReceiver.receiveData();
                     logger.log(Level.INFO, data.toString());
 
-                    Xform phoneSphereXform = new Xform();
-                    Sphere phoneSphere = new Sphere(2);
-                    phoneSphere.setMaterial(redMaterial);
-                    phoneSphereXform.getChildren().add(phoneSphere);
 
-                    phoneSphereXform.setTranslateX(data.getX());
-                    phoneSphereXform.setTranslateY(data.getY());
-                    phoneSphereXform.setTranslateZ(data.getZ());
-
-
-
-                    Platform.runLater(() -> phoneGroup.getChildren().add(phoneSphereXform));
+                    phoneSphereXform.setTranslateX(10000 / Math.sqrt(data.getX() * data.getX() + data.getY() * data.getY() + data.getZ() * data.getZ()) + 2);
 
                 }
             } catch (Exception ex) {
-ex.printStackTrace();
+                ex.printStackTrace();
             }
         });
         receiveDataThread.start();
@@ -180,9 +174,17 @@ ex.printStackTrace();
         magnetBoxXform.getChildren().add(magnetBox);
         moleculeGroup.getChildren().add(magnetBoxXform);
 
+
+        phoneSphereXform = new Xform();
+        Sphere phoneSphere = new Sphere(2);
+        phoneSphere.setMaterial(redMaterial);
+        phoneSphereXform.getChildren().add(phoneSphere);
+
         phoneGroup.setTranslateX(0);
         phoneGroup.setTranslateY(0);
         phoneGroup.setTranslateZ(0);
+
+        phoneGroup.getChildren().add(phoneSphereXform);
 
         world.getChildren().addAll(moleculeGroup);
         world.getChildren().addAll(phoneGroup);
@@ -190,7 +192,8 @@ ex.printStackTrace();
 
     private void handleMouse(Scene scene, final Node root) {
         scene.setOnMousePressed(new EventHandler<MouseEvent>() {
-            @Override public void handle(MouseEvent me) {
+            @Override
+            public void handle(MouseEvent me) {
                 mousePosX = me.getSceneX();
                 mousePosY = me.getSceneY();
                 mouseOldX = me.getSceneX();
