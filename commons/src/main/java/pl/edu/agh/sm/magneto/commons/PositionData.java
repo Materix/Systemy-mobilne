@@ -5,15 +5,11 @@ import org.apache.commons.lang3.SerializationUtils;
 import java.io.Serializable;
 
 public class PositionData implements Serializable {
-    private static final long serialVersionUID = 3L;
+    private static final long serialVersionUID = 1L;
 
-    private final String value;
-
-    private final double x;
-
-    private final double y;
-
-    private final double z;
+    private final float x;
+    private final float y;
+    private final float z;
 
     /**
      * Create new PositionData instance.
@@ -22,55 +18,26 @@ public class PositionData implements Serializable {
      * @param y up-down
      * @param z front-back
      */
-    public PositionData(double x, double y, double z) {
+    public PositionData(float x, float y, float z) {
         this.x = x;
         this.y = y;
         this.z = z;
-        this.value = x + ";" + y + ";" + z;
     }
 
-    public double getX() {
+    public float getX() {
         return x;
     }
 
-    public double getY() {
+    public float getY() {
         return y;
     }
 
-    public double getZ() {
+    public float getZ() {
         return z;
     }
 
-    public String getValue() {
-        return value;
-    }
-
-    @Override
-    public String toString() {
-        return value;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        PositionData that = (PositionData) o;
-
-        return Double.compare(that.x, x) == 0 && Double.compare(that.y, y) == 0 && Double.compare(that.z, z) == 0;
-    }
-
-    @Override
-    public int hashCode() {
-        int result;
-        long temp;
-        temp = Double.doubleToLongBits(x);
-        result = (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(y);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        temp = Double.doubleToLongBits(z);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        return result;
+    public String getStringValue() {
+        return x + ";" + y + ";" + z;
     }
 
     public static byte[] serialize(PositionData positionData) {
@@ -85,4 +52,33 @@ public class PositionData implements Serializable {
         return SerializationUtils.deserialize(bytes);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PositionData that = (PositionData) o;
+
+        if (Float.compare(that.x, x) != 0) return false;
+        if (Float.compare(that.y, y) != 0) return false;
+        return Float.compare(that.z, z) == 0;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (x != +0.0f ? Float.floatToIntBits(x) : 0);
+        result = 31 * result + (y != +0.0f ? Float.floatToIntBits(y) : 0);
+        result = 31 * result + (z != +0.0f ? Float.floatToIntBits(z) : 0);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "PositionData{" +
+                "x=" + x +
+                ", y=" + y +
+                ", z=" + z +
+                '}';
+    }
 }

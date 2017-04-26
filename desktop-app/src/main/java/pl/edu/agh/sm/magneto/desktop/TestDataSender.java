@@ -25,7 +25,7 @@ public class TestDataSender {
 				y = 0;
 				scale += 10;
 			}
-			byte[] data = new PositionData(scale * Math.sin(y), y, scale * Math.cos(y)).serialize();
+			byte[] data = new PositionData((float)(scale * Math.sin(y)), (float) y, (float)(scale * Math.cos(y))).serialize();
 
 			DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, DataReceiver.PORT);
 			clientSocket.send(sendPacket);

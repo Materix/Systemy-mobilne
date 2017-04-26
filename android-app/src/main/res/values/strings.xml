@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Magneto</string>
     <string name="action_settings">Settings</string>
+    <string name="title_activity_connect">Connect</string>
+
+    <string name="prompt_host">Host</string>
+    <string name="prompt_port">Port</string>
+    <string name="action_connect">Connect</string>
+    <string name="error_field_required">This field is required</string>
+
 </resources>
