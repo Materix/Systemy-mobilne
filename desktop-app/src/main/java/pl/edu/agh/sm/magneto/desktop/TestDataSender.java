@@ -8,27 +8,30 @@ import java.net.*;
 
 public class TestDataSender {
 
-	private static double y = 0;
-	private static double scale = 5;
-	public static void main(String[] args) throws IOException {
-		DatagramSocket clientSocket = new DatagramSocket();
-		InetAddress IPAddress = InetAddress.getByName("localhost");
+    private static double y = 0;
+    private static double scale = 5;
 
-		while (true) {
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			y += 0.1;
-			if (y > 25) {
-				y = 0;
-				scale += 10;
-			}
-			byte[] data = new PositionData((float)(scale * Math.sin(y)), (float) y, (float)(scale * Math.cos(y))).serialize();
+    public static void main(String[] args) throws IOException {
+        DatagramSocket clientSocket = new DatagramSocket();
+        InetAddress IPAddress = InetAddress.getByName("localhost");
 
-			DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, DataReceiver.PORT);
-			clientSocket.send(sendPacket);
-		}
-	}
+        while (true) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            y += 0.1;
+            if (y > 25) {
+                y = 0;
+                scale += 10;
+            }
+            byte[] data = new PositionData(new float[]{0, 0, 0},
+                    new float[]{0, 0, 0},
+                    new float[]{(float) (scale * Math.sin(y)), (float) y, (float) (scale * Math.cos(y))}).serialize();
+
+            DatagramPacket sendPacket = new DatagramPacket(data, data.length, IPAddress, DataReceiver.PORT);
+            clientSocket.send(sendPacket);
+        }
+    }
 }

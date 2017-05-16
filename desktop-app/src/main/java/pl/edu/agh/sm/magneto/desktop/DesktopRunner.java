@@ -1,5 +1,10 @@
 package pl.edu.agh.sm.magneto.desktop;
 
+import java.awt.AWTException;
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -18,11 +23,6 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 import pl.edu.agh.sm.magneto.desktop.ui.Xform;
-
-import java.awt.*;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class DesktopRunner extends Application {
 
@@ -103,7 +103,9 @@ public class DesktopRunner extends Application {
                     logger.log(Level.INFO, data.toString());
 
 
-                    phoneSphereXform.setTranslateX(10000 / Math.sqrt(data.getX() * data.getX() + data.getY() * data.getY() + data.getZ() * data.getZ()) + 2);
+                    phoneSphereXform.setTranslateX(10000 / Math.sqrt(data.getMagnetometer()[0] * data.getMagnetometer()[0]
+                            + data.getMagnetometer()[1] * data.getMagnetometer()[1]
+                            + data.getMagnetometer()[2] * data.getMagnetometer()[2]) + 2);
 
                 }
             } catch (Exception ex) {

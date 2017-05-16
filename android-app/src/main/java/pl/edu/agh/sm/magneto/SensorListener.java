@@ -10,26 +10,22 @@ class SensorListener implements SensorEventListener {
 
     private DataProcessor dataProcessor;
 
-    private float[] sensorValues = new float[5];
-
     SensorListener(DataProcessor dataProcessor) {
         this.dataProcessor = dataProcessor;
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        sensorValues = lowPassFilter(event.values.clone(), sensorValues);
+        int sensorType = event.sensor.getType();
+        float[] sensorValues = event.values;
+//        sensorValues = lowPassFilter(event.values.clone(), sensorValues);
 
-        float x = sensorValues[0];
-        float y = sensorValues[1];
-        float z = sensorValues[2];
-
-        dataProcessor.registerSensorChange(x, y, z);
+        dataProcessor.registerSensorChange(sensorType, sensorValues);
     }
 
     private float[] lowPassFilter(float[] input, float[] output) {
-        if ( output == null ) return input;
-        for ( int i=0; i<input.length; i++ ) {
+        if (output == null) return input;
+        for (int i = 0; i < input.length; i++) {
             output[i] = output[i] + ALPHA * (input[i] - output[i]);
         }
         return output;
@@ -38,7 +34,6 @@ class SensorListener implements SensorEventListener {
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
     }
-
 
 
 }

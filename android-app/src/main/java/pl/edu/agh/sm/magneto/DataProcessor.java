@@ -1,15 +1,15 @@
 package pl.edu.agh.sm.magneto;
 
-import android.hardware.SensorManager;
+import android.hardware.Sensor;
 
 import java.util.concurrent.BlockingQueue;
 
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
 class DataProcessor {
-    private float[] previousRotationMatrix = new float[9];
-    private float[] rotationMatrix = new float[9];
-    private float[] angleChange = new float[3];
+    private float[] accelerometerValues = new float[3];
+    private float[] gyroscopeValues = new float[3];
+    private float[] magnetometerValues = new float[3];
 
 
     private BlockingQueue<PositionData> queue;
@@ -18,13 +18,17 @@ class DataProcessor {
         this.queue = queue;
     }
 
-    synchronized void registerSensorChange(float x, float y, float z) {
+    synchronized void registerSensorChange(int sensorType, float[] sensorValues) {
 
-        SensorManager.getRotationMatrixFromVector(rotationMatrix, new float[]{x, y, z});
-        SensorManager.getAngleChange(angleChange, rotationMatrix, previousRotationMatrix);
-        System.arraycopy(rotationMatrix, 0, previousRotationMatrix, 0, rotationMatrix.length);
+        if (sensorType == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(sensorValues, 0, accelerometerValues, 0, accelerometerValues.length);
+        } else if (sensorType == Sensor.TYPE_GYROSCOPE) {
+            System.arraycopy(sensorValues, 0, gyroscopeValues, 0, gyroscopeValues.length);
+        } else if (sensorType == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(sensorValues, 0, magnetometerValues, 0, magnetometerValues.length);
+        }
 
-        PositionData data = new PositionData(x, y, z);
+        PositionData data = new PositionData(accelerometerValues, gyroscopeValues, magnetometerValues);
         publishState(data);
     }
 

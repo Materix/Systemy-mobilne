@@ -3,41 +3,37 @@ package pl.edu.agh.sm.magneto.commons;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 public class PositionData implements Serializable {
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    private final float x;
-    private final float y;
-    private final float z;
+    private final float[] accelerometer;
+    private final float[] gyroscope;
+    private final float[] magnetometer;
 
-    /**
-     * Create new PositionData instance.
-     *
-     * @param x right-left
-     * @param y up-down
-     * @param z front-back
-     */
-    public PositionData(float x, float y, float z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+    public PositionData(float[] accelerometer, float[] gyroscope, float[] magnetometer) {
+        this.accelerometer = accelerometer;
+        this.gyroscope = gyroscope;
+        this.magnetometer = magnetometer;
     }
 
-    public float getX() {
-        return x;
+    public float[] getAccelerometer() {
+        return accelerometer;
     }
 
-    public float getY() {
-        return y;
+    public float[] getGyroscope() {
+        return gyroscope;
     }
 
-    public float getZ() {
-        return z;
+    public float[] getMagnetometer() {
+        return magnetometer;
     }
 
     public String getStringValue() {
-        return x + ";" + y + ";" + z;
+        return "ACC: " + Arrays.toString(accelerometer)
+                + "; GYR: " + Arrays.toString(gyroscope)
+                + "; MAG: " + Arrays.toString(magnetometer);
     }
 
     public static byte[] serialize(PositionData positionData) {
@@ -53,32 +49,32 @@ public class PositionData implements Serializable {
     }
 
     @Override
+    public String toString() {
+        return "PositionData{" +
+                "accelerometer=" + Arrays.toString(accelerometer) +
+                ", gyroscope=" + Arrays.toString(gyroscope) +
+                ", magnetometer=" + Arrays.toString(magnetometer) +
+                '}';
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         PositionData that = (PositionData) o;
 
-        if (Float.compare(that.x, x) != 0) return false;
-        if (Float.compare(that.y, y) != 0) return false;
-        return Float.compare(that.z, z) == 0;
+        if (!Arrays.equals(accelerometer, that.accelerometer)) return false;
+        if (!Arrays.equals(gyroscope, that.gyroscope)) return false;
+        return Arrays.equals(magnetometer, that.magnetometer);
 
     }
 
     @Override
     public int hashCode() {
-        int result = (x != +0.0f ? Float.floatToIntBits(x) : 0);
-        result = 31 * result + (y != +0.0f ? Float.floatToIntBits(y) : 0);
-        result = 31 * result + (z != +0.0f ? Float.floatToIntBits(z) : 0);
+        int result = Arrays.hashCode(accelerometer);
+        result = 31 * result + Arrays.hashCode(gyroscope);
+        result = 31 * result + Arrays.hashCode(magnetometer);
         return result;
-    }
-
-    @Override
-    public String toString() {
-        return "PositionData{" +
-                "x=" + x +
-                ", y=" + y +
-                ", z=" + z +
-                '}';
     }
 }
