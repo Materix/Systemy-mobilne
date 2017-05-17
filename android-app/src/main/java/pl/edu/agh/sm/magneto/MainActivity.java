@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
 
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 

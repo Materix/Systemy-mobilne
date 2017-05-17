@@ -20,7 +20,7 @@ class DataProcessor {
 
     synchronized void registerSensorChange(int sensorType, float[] sensorValues) {
 
-        if (sensorType == Sensor.TYPE_ACCELEROMETER) {
+        if (sensorType == Sensor.TYPE_LINEAR_ACCELERATION) {
             System.arraycopy(sensorValues, 0, accelerometerValues, 0, accelerometerValues.length);
         } else if (sensorType == Sensor.TYPE_GYROSCOPE) {
             System.arraycopy(sensorValues, 0, gyroscopeValues, 0, gyroscopeValues.length);

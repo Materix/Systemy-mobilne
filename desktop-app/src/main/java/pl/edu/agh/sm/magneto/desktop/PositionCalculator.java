@@ -6,6 +6,7 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.inverse.InvertMatrix;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -23,7 +24,7 @@ public class PositionCalculator {
 
 	private State state;
 	private long lastReceiveTime;
-	private List<float[]> calibratingData;
+	private List<float[]> calibratingData = new ArrayList<>();
 
 	private int k;
 	private double dt;
@@ -58,8 +59,8 @@ public class PositionCalculator {
 			calibratingData.add(data.getMagnetometer());
 			return START_POSITION;
 		}
-		INDArray a_k = Nd4j.create(data.getAccelerometer());
-		INDArray g_k = Nd4j.create(data.getGyroscope());
+		INDArray a_k = Nd4j.create(data.getAccelerometer()).transpose();
+		INDArray g_k = Nd4j.create(data.getGyroscope()).transpose();
 
 		INDArray Omega = Nd4j.create(new double[][]{{0.0, -g_k.getDouble(2), g_k.getDouble(1)},
 				{g_k.getDouble(2), 0.0, -g_k.getDouble(0)},
@@ -79,8 +80,8 @@ public class PositionCalculator {
 		INDArray p = v.mul(dt).add(x.getRow(0).getColumns(2, 3));
 
 		P = F.mmul(P).mmul(F.transpose()).add(Q);
-		if ((k % 15) == 0) {
-			INDArray m_c = Nd4j.create(data.getMagnetometer());
+		if (false) {
+			INDArray m_c = Nd4j.create(data.getMagnetometer()).transpose();
 			INDArray p_tmp = x.getRow(0).getColumns(2, 3);
 			INDArray zk = correct_pos(p_tmp, m_c, interpolant); //<----mag correction (interpolant)
 
@@ -137,7 +138,7 @@ public class PositionCalculator {
 		Q = Nd4j.diag(Nd4j.create(new double[]{kq_v, kq_v, kq_p, kq_p})).mul(dt);
 		R = Nd4j.diag(Nd4j.create(new double[]{1.0, 1.0})).mul(kr);
 		previousX = Nd4j.create(new double[]{0, 0, START_POSITION[0], START_POSITION[1]});
-		C = Nd4j.create(new double[][]{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}});
+		C = Nd4j.eye(3);
 
 		H_pos = Nd4j.create(new double[][]{{0, 0, 1, 0}, {0, 0, 0, 1}});
 		H_vel = Nd4j.create(new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}});
