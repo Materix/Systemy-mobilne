@@ -6,7 +6,8 @@ import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.inverse.InvertMatrix;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
-import java.io.Serializable;
+import java.util.List;
+import java.util.function.Function;
 
 public class PositionCalculator {
 	private static final double[] START_POSITION = new double[]{0.17, -0.17, 0};
@@ -18,9 +19,11 @@ public class PositionCalculator {
 	private INDArray F;
 	private INDArray P;
 	private INDArray C;
+	private double mi;
 
 	private State state;
 	private long lastReceiveTime;
+	private List<float[]> calibratingData;
 
 	private int k;
 	private double dt;
@@ -31,6 +34,7 @@ public class PositionCalculator {
 	private EvictingQueue<Double> zuptWindow;
 
 	private INDArray previousX;
+	private Function<double[], double[]> interpolant;
 
 
 	public PositionCalculator() {
@@ -40,15 +44,9 @@ public class PositionCalculator {
 		zuptWindow = EvictingQueue.create(ZUPT_WINDOW_SIZE);
 	}
 
-	public void calibrate() {
-//			 x = [vx_k, vy_k, px_k, py_k]
-//		x = np.zeros(shape = (len(a)+1, 2 + 2))
-//		x[0][2:4] = p_0
-	}
-
 	public double[] calculatePosition(PositionData data) {
 		k += 1;
-		zuptWindow.add(calculateLenght(data.getMagnetometer()));
+		zuptWindow.add(calculateLength(data.getMagnetometer()));
 		if (state == State.CALIBRATING) {
 			if (k == 1) {
 				lastReceiveTime = System.currentTimeMillis();
@@ -57,6 +55,7 @@ public class PositionCalculator {
 				finishCalibration(time - lastReceiveTime);
 				state = State.RUNNING;
 			}
+			calibratingData.add(data.getMagnetometer());
 			return START_POSITION;
 		}
 		INDArray a_k = Nd4j.create(data.getAccelerometer());
@@ -76,28 +75,27 @@ public class PositionCalculator {
 		INDArray x = F.mmul(previousX).addColumnVector(Nd4j.create(new double[]{dt * ax, dt * ay, 0, 0}));
 
 
-
-		INDArray v = Nd4j.create(new double[]{ax, ay}).mul(dt).add(x.getRow(0).getColumns(0,1));
-		INDArray p = v.mul(dt).add(x.getRow(0).getColumns(2,3));
+		INDArray v = Nd4j.create(new double[]{ax, ay}).mul(dt).add(x.getRow(0).getColumns(0, 1));
+		INDArray p = v.mul(dt).add(x.getRow(0).getColumns(2, 3));
 
 		P = F.mmul(P).mmul(F.transpose()).add(Q);
 		if ((k % 15) == 0) {
 			INDArray m_c = Nd4j.create(data.getMagnetometer());
-			INDArray p_tmp = x.getRow(0).getColumns(2,3);
-			INDArray zk = correct_pos(p_tmp, m_c, null); //<----mag correction (interpolant)
+			INDArray p_tmp = x.getRow(0).getColumns(2, 3);
+			INDArray zk = correct_pos(p_tmp, m_c, interpolant); //<----mag correction (interpolant)
 
 			INDArray K = P.mmul(H_pos.transpose()).mmul(InvertMatrix.invert(H_pos.mmul(P).mmul(H_pos.transpose()).add(R), false));
 			P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
 			P = P.add(P.transpose()).div(2.0);
 			INDArray yk = H_pos.mmul(x).subRowVector(zk).mul(-1);
 			INDArray dx = (K.mmul(yk));
-			INDArray xk_ = x.getRow(0).getColumns(2,3).add(dx.getRow(0).getColumns(2,3));
-			INDArray vk_ = x.getRow(0).getColumns(0,1).add(dx.getRow(0).getColumns(0,1));
+			INDArray xk_ = x.getRow(0).getColumns(2, 3).add(dx.getRow(0).getColumns(2, 3));
+			INDArray vk_ = x.getRow(0).getColumns(0, 1).add(dx.getRow(0).getColumns(0, 1));
 
-			x.put(0,0, vk_.getDouble(0));
-			x.put(0,1, vk_.getDouble(1));
-			x.put(0,2, xk_.getDouble(0));
-			x.put(0,3, xk_.getDouble(1));
+			x.put(0, 0, vk_.getDouble(0));
+			x.put(0, 1, vk_.getDouble(1));
+			x.put(0, 2, xk_.getDouble(0));
+			x.put(0, 3, xk_.getDouble(1));
 		}
 		if (isZupt()) {
 			INDArray K = P.mmul(H_vel.transpose()).mmul(InvertMatrix.invert(H_vel.mmul(P).mmul(H_vel.transpose()).add(R), false));
@@ -110,11 +108,11 @@ public class PositionCalculator {
 
 		previousX = x;
 
-		return new double[]{previousX.getDouble(2),previousX.getDouble(3), 0.0};
+		return new double[]{previousX.getDouble(2), previousX.getDouble(3), 0.0};
 	}
 
-	private INDArray correct_pos(INDArray p_tmp, INDArray m_c, Object o) {
-		return Nd4j.create(new double[][]{{0},{0}});
+	private INDArray correct_pos(INDArray p_tmp, INDArray m_c, Function<double[], double[]> interpolant) {
+		return Nd4j.create(new double[][]{{0}, {0}});
 	}
 
 	private boolean isZupt() {
@@ -124,7 +122,7 @@ public class PositionCalculator {
 		double mean = sum / zuptWindow.size();
 
 		sum = 0;
-		for (double a :zuptWindow)
+		for (double a : zuptWindow)
 			sum += (a - mean) * (a - mean);
 		return sum / zuptWindow.size() < ZUPT_THRESHOLD;
 	}
@@ -132,30 +130,83 @@ public class PositionCalculator {
 	private void finishCalibration(double t) {
 		dt = (FINISH_CALIBRATING_STEP - 1) / t;
 		F = Nd4j.vstack(Nd4j.hstack(Nd4j.eye(2), Nd4j.zeros(2, 2)), Nd4j.hstack(Nd4j.eye(2).mul(dt), Nd4j.eye(2)));
-		P = Nd4j.zeros(4,4);
+		P = Nd4j.zeros(4, 4);
 		double kq_v = 0.00001;
 		double kq_p = 0.001;
 		double kr = 0.00000001;
 		Q = Nd4j.diag(Nd4j.create(new double[]{kq_v, kq_v, kq_p, kq_p})).mul(dt);
 		R = Nd4j.diag(Nd4j.create(new double[]{1.0, 1.0})).mul(kr);
 		previousX = Nd4j.create(new double[]{0, 0, START_POSITION[0], START_POSITION[1]});
-		C = Nd4j.create(new double[][]{{0, 0,0}, {0, 0,0},{0, 0,0}});
+		C = Nd4j.create(new double[][]{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}});
 
-		H_pos = Nd4j.create(new double[][]{{0,0,1,0}, {0,0,0,1}});
-		H_vel = Nd4j.create(new double[][]{{1,0,0,0}, {0,1,0,0}});
+		H_pos = Nd4j.create(new double[][]{{0, 0, 1, 0}, {0, 0, 0, 1}});
+		H_vel = Nd4j.create(new double[][]{{1, 0, 0, 0}, {0, 1, 0, 0}});
+		interpolant = createInterpolant(calculateMi());
 
 		k = 0;
 	}
 
-	private double calculateLenght(float[] vector) {
+	private double[] calculateMi() {
+		double avgX = 0;
+		double avgY = 0;
+		double avgZ = 0;
+		for (float[] vector : calibratingData) {
+			avgX += vector[0];
+			avgY += vector[1];
+			avgZ += vector[2];
+		}
+		avgX /= calibratingData.size();
+		avgY /= calibratingData.size();
+		avgZ /= calibratingData.size();
+
+		double x = START_POSITION[0];
+		double y = START_POSITION[1];
+		double z = START_POSITION[2];
+		double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
+
+
+		return new double[]{
+				avgX * denominator / (3 * z * y),
+				avgY * denominator / (3 * z * x),
+				avgZ * denominator / (2 * (x * x - y * y) - z * z)
+		};
+	}
+
+	private double calculateLength(double[] vector) {
 		double sum = 0;
-		for (float e: vector) {
-			sum += e*e;
+		for (double e : vector) {
+			sum += e * e;
 		}
 		return Math.sqrt(sum);
+	}
+
+	private double calculateLength(float[] vector) {
+		double sum = 0;
+		for (double e : vector) {
+			sum += e * e;
+		}
+		return Math.sqrt(sum);
+	}
+
+	private Function<double[], double[]> createInterpolant(double[] mi) {
+		double miLength = calculateLength(mi);
+		return vector -> {
+			double x = vector[0];
+			double y = vector[1];
+			double z = vector[2];
+			double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
+
+			return new double[]{
+					3 * miLength * z * y / denominator,
+					3 * miLength * z * x / denominator,
+					miLength * (2 * (x * x - y * y) - z * z) / denominator
+			};
+		};
+
 	}
 
 	private enum State {
 		CALIBRATING, RUNNING;
 	}
+
 }
