@@ -97,16 +97,16 @@ public class DesktopRunner extends Application {
 
         receiveDataThread = new Thread(() -> {
             try {
+                PositionCalculator positionCalculator = new PositionCalculator();
                 DataReceiver dataReceiver = new DataReceiver();
                 while (true) {
                     PositionData data = dataReceiver.receiveData();
                     logger.log(Level.INFO, data.toString());
+                    double[] position = positionCalculator.calculatePosition(data);
 
-
-                    phoneSphereXform.setTranslateX(10000 / Math.sqrt(data.getMagnetometer()[0] * data.getMagnetometer()[0]
-                            + data.getMagnetometer()[1] * data.getMagnetometer()[1]
-                            + data.getMagnetometer()[2] * data.getMagnetometer()[2]) + 2);
-
+                    phoneSphereXform.setTranslateX(position[0]);
+                    phoneSphereXform.setTranslateY(position[1]);
+                    phoneSphereXform.setTranslateZ(position[2]);
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
