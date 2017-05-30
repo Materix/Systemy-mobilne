@@ -1,11 +1,20 @@
 package pl.edu.agh.sm.magneto.desktop;
 
 import com.google.common.collect.EvictingQueue;
+import org.apache.commons.math3.analysis.MultivariateFunction;
+import org.apache.commons.math3.optim.InitialGuess;
+import org.apache.commons.math3.optim.MaxEval;
+import org.apache.commons.math3.optim.PointValuePair;
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.inverse.InvertMatrix;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -42,6 +51,7 @@ public class PositionCalculator {
 		k = 0;
 		state = State.CALIBRATING;
 		zuptWindow = EvictingQueue.create(ZUPT_WINDOW_SIZE);
+		calibratingData = new LinkedList<>();
 	}
 
 	public double[] calculatePosition(PositionData data) {
@@ -82,7 +92,7 @@ public class PositionCalculator {
 		if ((k % 15) == 0) {
 			INDArray m_c = Nd4j.create(data.getMagnetometer());
 			INDArray p_tmp = x.getRow(0).getColumns(2, 3);
-			INDArray zk = correct_pos(p_tmp, m_c, interpolant); //<----mag correction (interpolant)
+			INDArray zk = Nd4j.create(correct_pos(p_tmp, m_c., interpolant)); //<----mag correction (interpolant)
 
 			INDArray K = P.mmul(H_pos.transpose()).mmul(InvertMatrix.invert(H_pos.mmul(P).mmul(H_pos.transpose()).add(R), false));
 			P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
@@ -111,8 +121,13 @@ public class PositionCalculator {
 		return new double[]{previousX.getDouble(2), previousX.getDouble(3), 0.0};
 	}
 
-	private INDArray correct_pos(INDArray p_tmp, INDArray m_c, Function<double[], double[]> interpolant) {
-		return Nd4j.create(new double[][]{{0}, {0}});
+	private double[] correct_pos(double[] p_tmp, double[] m_c, Function<double[], double[]> interpolant) {
+		SimplexOptimizer optimizer = new SimplexOptimizer(1e-10, 1e-30);
+		return optimizer.optimize(new MaxEval(100),
+				new ObjectiveFunction(new MagneticFieldModel(interpolant, m_c)),
+				GoalType.MINIMIZE,
+				new InitialGuess(p_tmp),
+				new NelderMeadSimplex(new double[]{0.2, 0.2, 0.2})).getPoint();
 	}
 
 	private boolean isZupt() {
@@ -172,7 +187,7 @@ public class PositionCalculator {
 		};
 	}
 
-	private double calculateLength(double[] vector) {
+	private static double calculateLength(double[] vector) {
 		double sum = 0;
 		for (double e : vector) {
 			sum += e * e;
@@ -180,7 +195,7 @@ public class PositionCalculator {
 		return Math.sqrt(sum);
 	}
 
-	private double calculateLength(float[] vector) {
+	private static double calculateLength(float[] vector) {
 		double sum = 0;
 		for (double e : vector) {
 			sum += e * e;
@@ -203,6 +218,24 @@ public class PositionCalculator {
 			};
 		};
 
+	}
+
+	private static class MagneticFieldModel implements MultivariateFunction {
+		private Function<double[], double[]> interpolant;
+		private double[] measuredValue;
+
+		MagneticFieldModel(Function<double[], double[]> interpolant, double[] measuredValue) {
+			this.interpolant = interpolant;
+			this.measuredValue = measuredValue;
+		}
+
+		@Override
+		public double value(double[] point) {
+			double[] modeledValue = interpolant.apply(point);
+			double first = calculateLength(new double[]{modeledValue[0] - measuredValue[0], modeledValue[1] - measuredValue[1], modeledValue[2] - measuredValue[2]});
+			double second = calculateLength(modeledValue) - calculateLength(measuredValue);
+			return first * first + second * second;
+		}
 	}
 
 	private enum State {
