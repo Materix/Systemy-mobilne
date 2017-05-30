@@ -13,7 +13,7 @@ import java.util.List;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
 public class DataListSerializer {
-    public static final String FILENAME = "data.bytes";
+    public static final String FILENAME = "flat.bytes";
     private static final long NANOSEC_PER_SEC = 1000L * 1000 * 1000;
     private static final long SECONDS_RUNNING = 120;
 

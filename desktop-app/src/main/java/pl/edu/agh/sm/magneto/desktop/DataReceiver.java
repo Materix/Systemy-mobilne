@@ -33,7 +33,7 @@ public class DataReceiver {
         serverSocket.receive(receivePacket);
 
         PositionData data = PositionData.deserialize(receivePacket.getData());
-        logger.log(Level.INFO, data.toString());
+//        logger.log(Level.INFO, data.toString());
 
         return data;
     }

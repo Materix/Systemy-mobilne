@@ -21,11 +21,11 @@ import pl.edu.agh.sm.magneto.desktop.ui.Xform;
 
 import java.awt.*;
 import java.io.IOException;
-import java.util.logging.Level;
+import java.net.SocketException;
 import java.util.logging.Logger;
 
 public class DesktopRunner extends Application {
-	private static final double SCALE = 1000;
+	private static final double SCALE = 1;
 	private static Logger logger = Logger.getLogger(DesktopRunner.class.getName());
 	final Group root = new Group();
 	final Group axisGroup = new Group();
@@ -93,21 +93,29 @@ public class DesktopRunner extends Application {
 	private void startDataReceiver() {
 
 		receiveDataThread = new Thread(() -> {
+
+			PositionCalculator positionCalculator = new PositionCalculator();
+			DataReceiver dataReceiver = null;
 			try {
-				PositionCalculator positionCalculator = new PositionCalculator();
-				DataReceiver dataReceiver = new DataReceiver();
-				while (true) {
+				dataReceiver = new DataReceiver();
+			} catch (SocketException e) {
+				throw new RuntimeException(e);
+			}
+			while (true) {
+				try {
 					PositionData data = dataReceiver.receiveData();
-					logger.log(Level.INFO, data.toString());
+//					logger.log(Level.INFO, data.toString());
 					double[] position = positionCalculator.calculatePosition(data);
 
+					// XYZ -> XZY
 					phoneSphereXform.setTranslateX(position[0] * SCALE);
-					phoneSphereXform.setTranslateY(position[1] * SCALE);
-					phoneSphereXform.setTranslateZ(position[2] * SCALE);
+					phoneSphereXform.setTranslateY(position[2] * SCALE);
+					phoneSphereXform.setTranslateZ(position[1] * SCALE);
+				} catch (Exception ex) {
+					ex.printStackTrace();
 				}
-			} catch (Exception ex) {
-				ex.printStackTrace();
 			}
+
 		});
 		receiveDataThread.start();
 	}
