@@ -19,7 +19,7 @@ public class TestDataSender {
         byte[] bytes = Files.readAllBytes(Paths.get(DataListSerializer.FILENAME));
         List<PositionData> deserialized = SerializationUtils.deserialize(bytes);
 
-//        StringJoiner global = new StringJoiner("," + System.lineSeparator(), "[", "]");
+        StringJoiner global = new StringJoiner("," + System.lineSeparator(), "[", "]");
         while (true) {
 
             for (PositionData positionData : deserialized) {

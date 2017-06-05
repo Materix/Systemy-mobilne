@@ -20,7 +20,7 @@ class SensorListener implements SensorEventListener {
         float[] sensorValues = event.values;
 //        sensorValues = lowPassFilter(event.values.clone(), sensorValues);
 
-        dataProcessor.registerSensorChange(sensorType, sensorValues);
+        dataProcessor.registerSensorChange(sensorType, sensorValues, event.timestamp);
     }
 
     private float[] lowPassFilter(float[] input, float[] output) {

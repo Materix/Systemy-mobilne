@@ -25,7 +25,7 @@ import java.net.SocketException;
 import java.util.logging.Logger;
 
 public class DesktopRunner extends Application {
-	private static final double SCALE = 1;
+	private static final double SCALE = 50;
 	private static Logger logger = Logger.getLogger(DesktopRunner.class.getName());
 	final Group root = new Group();
 	final Group axisGroup = new Group();
@@ -64,7 +64,7 @@ public class DesktopRunner extends Application {
 
 		buildScene();
 		buildCamera();
-//        buildAxes();
+        buildAxes();
 		buildModel();
 
 
@@ -109,8 +109,8 @@ public class DesktopRunner extends Application {
 
 					// XYZ -> XZY
 					phoneSphereXform.setTranslateX(position[0] * SCALE);
-					phoneSphereXform.setTranslateY(position[2] * SCALE);
-					phoneSphereXform.setTranslateZ(position[1] * SCALE);
+					phoneSphereXform.setTranslateY(-position[1] * SCALE);
+					phoneSphereXform.setTranslateZ(position[2] * SCALE);
 				} catch (Exception ex) {
 					ex.printStackTrace();
 				}
@@ -129,13 +129,13 @@ public class DesktopRunner extends Application {
 		cameraXform.getChildren().add(cameraXform2);
 		cameraXform2.getChildren().add(cameraXform3);
 		cameraXform3.getChildren().add(camera);
-		cameraXform3.setRotateZ(180.0);
+//		cameraXform3.setRotateZ(180.0);
 
 		camera.setNearClip(0.1);
 		camera.setFarClip(10000.0);
 		camera.setTranslateZ(-cameraDistance);
-		cameraXform.ry.setAngle(320.0);
-		cameraXform.rx.setAngle(40);
+//		cameraXform.ry.setAngle(320.0);
+//		cameraXform.rx.setAngle(40);
 	}
 
 	private void buildAxes() {
@@ -176,7 +176,8 @@ public class DesktopRunner extends Application {
 
 		Xform magnetBoxXform = new Xform();
 
-		Box magnetBox = new Box(10, 5, 20);
+//		Box magnetBox = new Box(10, 5, 20);
+		Box magnetBox = new Box(1, 1, 1);
 		magnetBox.setMaterial(silverMaterial);
 		magnetBoxXform.getChildren().add(magnetBox);
 		moleculeGroup.getChildren().add(magnetBoxXform);

@@ -6,75 +6,89 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public class PositionData implements Serializable {
-    private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 3L;
 
-    private final float[] accelerometer;
-    private final float[] gyroscope;
-    private final float[] magnetometer;
+	private final float[] accelerometer;
+	private final float[] gyroscope;
+	private final float[] magnetometer;
+	private final float[] pose6Dof;
+	private final long deltaTime;
 
-    public PositionData(float[] accelerometer, float[] gyroscope, float[] magnetometer) {
-        this.accelerometer = accelerometer;
-        this.gyroscope = gyroscope;
-        this.magnetometer = magnetometer;
-    }
+	public PositionData(float[] accelerometer, float[] gyroscope, float[] magnetometer, float[] pose6Dof, long deltaTime) {
+		this.accelerometer = accelerometer;
+		this.gyroscope = gyroscope;
+		this.magnetometer = magnetometer;
+		this.pose6Dof = pose6Dof;
+		this.deltaTime = deltaTime;
+	}
 
-    public float[] getAccelerometer() {
-        return accelerometer;
-    }
+	public float[] getAccelerometer() {
+		return accelerometer;
+	}
 
-    public float[] getGyroscope() {
-        return gyroscope;
-    }
+	public float[] getGyroscope() {
+		return gyroscope;
+	}
 
-    public float[] getMagnetometer() {
-        return magnetometer;
-    }
+	public float[] getMagnetometer() {
+		return magnetometer;
+	}
 
-    public String getStringValue() {
-        return "ACC: " + Arrays.toString(accelerometer)
-                + "; GYR: " + Arrays.toString(gyroscope)
-                + "; MAG: " + Arrays.toString(magnetometer);
-    }
+	public float[] getPose6Dof() {
+		return pose6Dof;
+	}
 
-    public static byte[] serialize(PositionData positionData) {
-        return SerializationUtils.serialize(positionData);
-    }
+	public long getDeltaTime() {
+		return deltaTime;
+	}
 
-    public byte[] serialize() {
-        return serialize(this);
-    }
+	public String getStringValue() {
+		return "ACC: " + Arrays.toString(accelerometer)
+				+ "; GYR: " + Arrays.toString(gyroscope)
+				+ "; MAG: " + Arrays.toString(magnetometer);
+	}
 
-    public static PositionData deserialize(byte[] bytes) {
-        return SerializationUtils.deserialize(bytes);
-    }
+	public static byte[] serialize(PositionData positionData) {
+		return SerializationUtils.serialize(positionData);
+	}
 
-    @Override
-    public String toString() {
-        return "PositionData{" +
-                "accelerometer=" + Arrays.toString(accelerometer) +
-                ", gyroscope=" + Arrays.toString(gyroscope) +
-                ", magnetometer=" + Arrays.toString(magnetometer) +
-                '}';
-    }
+	public byte[] serialize() {
+		return serialize(this);
+	}
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+	public static PositionData deserialize(byte[] bytes) {
+		return SerializationUtils.deserialize(bytes);
+	}
 
-        PositionData that = (PositionData) o;
+	@Override
+	public String toString() {
+		return "PositionData{" +
+				"accelerometer=" + Arrays.toString(accelerometer) +
+				", gyroscope=" + Arrays.toString(gyroscope) +
+				", magnetometer=" + Arrays.toString(magnetometer) +
+				'}';
+	}
 
-        if (!Arrays.equals(accelerometer, that.accelerometer)) return false;
-        if (!Arrays.equals(gyroscope, that.gyroscope)) return false;
-        return Arrays.equals(magnetometer, that.magnetometer);
 
-    }
 
-    @Override
-    public int hashCode() {
-        int result = Arrays.hashCode(accelerometer);
-        result = 31 * result + Arrays.hashCode(gyroscope);
-        result = 31 * result + Arrays.hashCode(magnetometer);
-        return result;
-    }
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		PositionData that = (PositionData) o;
+
+		if (!Arrays.equals(accelerometer, that.accelerometer)) return false;
+		if (!Arrays.equals(gyroscope, that.gyroscope)) return false;
+		return Arrays.equals(magnetometer, that.magnetometer);
+
+	}
+
+	@Override
+	public int hashCode() {
+		int result = Arrays.hashCode(accelerometer);
+		result = 31 * result + Arrays.hashCode(gyroscope);
+		result = 31 * result + Arrays.hashCode(magnetometer);
+		return result;
+	}
 }

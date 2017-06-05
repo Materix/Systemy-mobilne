@@ -21,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
     private Sensor accelerometer;
     private Sensor gyroscope;
     private Sensor magnetometer;
+    private Sensor pose6Dof;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        pose6Dof = sensorManager.getDefaultSensor(Sensor.TYPE_POSE_6DOF);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         Intent intent = getIntent();
@@ -49,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         sensorManager.registerListener(sensorListener, accelerometer, SensorManager.SENSOR_DELAY_UI);
         sensorManager.registerListener(sensorListener, gyroscope, SensorManager.SENSOR_DELAY_UI);
         sensorManager.registerListener(sensorListener, magnetometer, SensorManager.SENSOR_DELAY_UI);
+        sensorManager.registerListener(sensorListener, pose6Dof, SensorManager.SENSOR_DELAY_UI);
     }
 
     @Override
