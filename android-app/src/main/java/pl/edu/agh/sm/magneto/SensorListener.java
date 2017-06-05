@@ -19,7 +19,6 @@ class SensorListener implements SensorEventListener {
         int sensorType = event.sensor.getType();
         float[] sensorValues = event.values;
 //        sensorValues = lowPassFilter(event.values.clone(), sensorValues);
-
         dataProcessor.registerSensorChange(sensorType, sensorValues, event.timestamp);
     }
 

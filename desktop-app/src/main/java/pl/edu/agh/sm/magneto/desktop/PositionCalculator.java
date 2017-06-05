@@ -36,7 +36,6 @@ public class PositionCalculator {
 	private double mi;
 
 	private State state;
-	private long lastReceiveTime;
 	private List<float[]> magnetometerCalibratingData = new ArrayList<>();
 	private List<float[]> accelerometerCalibratingData = new ArrayList<>();
 	private List<float[]> gyroscopeCalibratingData = new ArrayList<>();
@@ -49,7 +48,7 @@ public class PositionCalculator {
 	private INDArray H_vel;
 	private EvictingQueue<Double> zuptWindow;
 
-	private INDArray previousX;
+	private INDArray previousX =  Nd4j.create(new double[]{0, 0, START_POSITION[0], START_POSITION[1]}).transpose();
 	private Function<double[], double[]> interpolant;
 
 	private float[] magnetometerValues;
@@ -58,6 +57,7 @@ public class PositionCalculator {
 
 	private float[] accelerometerZeroValues;
 	private float[] gyroscopeZeroValues;
+	private long lastTimestamp;
 
 
 	public PositionCalculator() {
@@ -84,7 +84,29 @@ public class PositionCalculator {
 	}
 
 	public double[] calculatePosition(PositionData data) {
+		if (lastTimestamp == 0) {
+			lastTimestamp = data.getTimestamp();
+			return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
+		}
+		StringJoiner joiner = new StringJoiner(";");
+		for (float v: data.getGyroscope()) {
+			joiner.add(Float.toString(v));
+		}
+		for (float v: data.getAccelerometer()) {
+			joiner.add(Float.toString(v));
+		}
+		for (float v: data.getMagnetometer()) {
+			joiner.add(Float.toString(v));
+		}
+		joiner.add(Long.toString(data.getTimestamp()));
+//		System.out.println(joiner);
 
+		dt = (data.getTimestamp() - lastTimestamp) / 1000000000.0;
+		System.out.println(dt);
+		if (dt == 0) {
+			return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
+		}
+		lastTimestamp = data.getTimestamp();
 
 		magnetometerValues = lowPassFilter(data.getMagnetometer(), magnetometerValues);
 		accelerometerValues = lowPassFilter(data.getAccelerometer(), accelerometerValues);
@@ -93,17 +115,14 @@ public class PositionCalculator {
 		k += 1;
 		zuptWindow.add(calculateLength(gyroscopeValues));
 		if (state == State.CALIBRATING) {
-			if (k == 1) {
-				lastReceiveTime = System.currentTimeMillis();
-			} else if (k == FINISH_CALIBRATING_STEP) {
-				long time = System.currentTimeMillis();
-				finishCalibration(time - lastReceiveTime);
-				state = State.RUNNING;
-			}
 			magnetometerCalibratingData.add(magnetometerValues.clone());
 			accelerometerCalibratingData.add(accelerometerValues.clone());
 			gyroscopeCalibratingData.add(gyroscopeValues.clone());
-			return START_POSITION;
+			if (k == FINISH_CALIBRATING_STEP) {
+				finishCalibration();
+				state = State.RUNNING;
+			}
+			return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
 		}
 
 
@@ -116,7 +135,6 @@ public class PositionCalculator {
 		INDArray Omega = Nd4j.create(new double[][]{{0.0, -g_k.getDouble(2), g_k.getDouble(1)},
 				{g_k.getDouble(2), 0.0, -g_k.getDouble(0)},
 				{-g_k.getDouble(1), g_k.getDouble(0), 0.0}});
-
 
 		C = C.mmul((Nd4j.eye(3).mul(2.0).add(Omega.mul(dt))).mmul(inverse(Nd4j.eye(3).mul(2.0).sub(Omega.mul(dt)))));
 		INDArray a_nav = C.mmul(a_k);
@@ -135,8 +153,8 @@ public class PositionCalculator {
 
 		P = F.mmul(P).mmul(F.transpose()).add(Q);
 //		if ((k % 2) == 0) {
-//		if (false) {
-		if (calculateLength(magnetometerValues) > 0) {
+		if (false) {
+//		if (calculateLength(magnetometerValues) > 0) {
 			double xPos = x.getDouble(2, 0);
 			double yPos = x.getDouble(3, 0);
 			INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos, 0}, magnetometerValues, interpolant)).transpose(); //<----mag correction (interpolant)
@@ -163,7 +181,7 @@ public class PositionCalculator {
 			x = x.add(K.mmul(yk));
 		}
 		previousX = x;
-		System.out.println(accelerometerValues[0] + ";" + accelerometerValues[1] + ";" +accelerometerValues[2] + ";" +x.getDouble(0) + ";" + x.getDouble(1) + ";" + x.getDouble(2) + ";" + x.getDouble(3));
+//		System.out.println(accelerometerValues[0] + ";" + accelerometerValues[1] + ";" +accelerometerValues[2] + ";" +x.getDouble(0) + ";" + x.getDouble(1) + ";" + x.getDouble(2) + ";" + x.getDouble(3));
 
 		return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
 
@@ -211,8 +229,7 @@ public class PositionCalculator {
 		return sum / zuptWindow.size() < ZUPT_THRESHOLD;
 	}
 
-	private void finishCalibration(double t) {
-		dt = (FINISH_CALIBRATING_STEP - 1) / t;
+	private void finishCalibration() {
 		F = Nd4j.vstack(Nd4j.hstack(Nd4j.eye(2), Nd4j.zeros(2, 2)), Nd4j.hstack(Nd4j.eye(2).mul(dt), Nd4j.eye(2)));
 		P = Nd4j.zeros(4, 4);
 		double kq_v = 0.00001;
@@ -220,7 +237,6 @@ public class PositionCalculator {
 		double kr = 0.00000001;
 		Q = Nd4j.diag(Nd4j.create(new double[]{kq_v, kq_v, kq_p, kq_p})).mul(dt);
 		R = Nd4j.diag(Nd4j.create(new double[]{1.0, 1.0})).mul(kr);
-		previousX = Nd4j.create(new double[]{0, 0, START_POSITION[0], START_POSITION[1]}).transpose();
 		C = Nd4j.eye(3);
 
 		H_pos = Nd4j.create(new double[][]{{0, 0, 1, 0}, {0, 0, 0, 1}});
@@ -260,9 +276,10 @@ public class PositionCalculator {
 	private double[] calculateMi() {
 		float[] avg = avgArray(magnetometerCalibratingData);
 
-		double x = START_POSITION[0];
-		double y = START_POSITION[1];
-		double z = START_POSITION[2];
+		double[] startPosition = new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
+		double x = startPosition[0];
+		double y = startPosition[1];
+		double z = startPosition[2];
 		double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
 
 
