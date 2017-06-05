@@ -34,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
 
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        pose6Dof = sensorManager.getDefaultSensor(Sensor.TYPE_POSE_6DOF);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         Intent intent = getIntent();

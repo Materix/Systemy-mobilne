@@ -11,14 +11,12 @@ public class PositionData implements Serializable {
 	private final float[] accelerometer;
 	private final float[] gyroscope;
 	private final float[] magnetometer;
-	private final float[] pose6Dof;
 	private final long deltaTime;
 
-	public PositionData(float[] accelerometer, float[] gyroscope, float[] magnetometer, float[] pose6Dof, long deltaTime) {
+	public PositionData(float[] accelerometer, float[] gyroscope, float[] magnetometer, long deltaTime) {
 		this.accelerometer = accelerometer;
 		this.gyroscope = gyroscope;
 		this.magnetometer = magnetometer;
-		this.pose6Dof = pose6Dof;
 		this.deltaTime = deltaTime;
 	}
 
@@ -32,10 +30,6 @@ public class PositionData implements Serializable {
 
 	public float[] getMagnetometer() {
 		return magnetometer;
-	}
-
-	public float[] getPose6Dof() {
-		return pose6Dof;
 	}
 
 	public long getDeltaTime() {

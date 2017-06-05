@@ -84,13 +84,8 @@ public class PositionCalculator {
 	}
 
 	public double[] calculatePosition(PositionData data) {
-		StringJoiner joiner = new StringJoiner(";");
-		for (float v: data.getPose6Dof()) {
-			joiner.add(Float.toString(v));
-		}
-		System.out.println(joiner);
-		return START_POSITION;
-		/*
+
+
 		magnetometerValues = lowPassFilter(data.getMagnetometer(), magnetometerValues);
 		accelerometerValues = lowPassFilter(data.getAccelerometer(), accelerometerValues);
 		gyroscopeValues = lowPassFilter(data.getGyroscope(), gyroscopeValues);
@@ -171,7 +166,7 @@ public class PositionCalculator {
 		System.out.println(accelerometerValues[0] + ";" + accelerometerValues[1] + ";" +accelerometerValues[2] + ";" +x.getDouble(0) + ";" + x.getDouble(1) + ";" + x.getDouble(2) + ";" + x.getDouble(3));
 
 		return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
-		*/
+
 	}
 
 	private INDArray inverse(INDArray input) {
