@@ -6,12 +6,12 @@ import java.io.Serializable;
 import java.util.Arrays;
 
 public class PositionData implements Serializable {
-	private static final long serialVersionUID = 3L;
+	private static final long serialVersionUID = 2L;
 
 	private final float[] accelerometer;
 	private final float[] gyroscope;
 	private final float[] magnetometer;
-	private final long timestamp;
+	private long timestamp;
 
 	public PositionData(float[] accelerometer, float[] gyroscope, float[] magnetometer, long timestamp) {
 		this.accelerometer = accelerometer;
