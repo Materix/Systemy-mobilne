@@ -21,7 +21,6 @@ public class MainActivity extends AppCompatActivity {
     private Sensor accelerometer;
     private Sensor gyroscope;
     private Sensor magnetometer;
-    private Sensor pose6Dof;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
         sensorManager.registerListener(sensorListener, accelerometer, SensorManager.SENSOR_DELAY_UI);
         sensorManager.registerListener(sensorListener, gyroscope, SensorManager.SENSOR_DELAY_UI);
         sensorManager.registerListener(sensorListener, magnetometer, SensorManager.SENSOR_DELAY_UI);
-        sensorManager.registerListener(sensorListener, pose6Dof, SensorManager.SENSOR_DELAY_UI);
     }
 
     @Override

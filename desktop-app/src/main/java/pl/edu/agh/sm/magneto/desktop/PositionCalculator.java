@@ -25,11 +25,11 @@ import java.util.function.Function;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
 public class PositionCalculator {
-    private static final double[] START_POSITION = new double[]{1, 0};
+    private static final double[] START_POSITION = new double[]{0, 0};
     private static final int FINISH_CALIBRATING_STEP = 30;
     private static final double ZUPT_THRESHOLD = 0.00001;
-    private static final int ZUPT_WINDOW_SIZE = 30;
-    private static final float ALPHA = 0.25f;
+    private static final int ZUPT_WINDOW_SIZE = 5;
+    private static final float ALPHA = 0.15f;
 
     private INDArray p_0;
 //    private INDArray F;
@@ -60,6 +60,10 @@ public class PositionCalculator {
     private float[] accelerometerZeroValues;
     private float[] gyroscopeZeroValues;
     private long lastTimestamp;
+    private double vx = 0;
+    private double vy = 0;
+    private double px = START_POSITION[0];
+    private double py = START_POSITION[1];
 
 
     public PositionCalculator() {
@@ -105,7 +109,9 @@ public class PositionCalculator {
 
         dt = (data.getTimestamp() - lastTimestamp) / 1000000000.0;
         if (dt <= 0 || dt > 1) {
-            return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
+            return new double[]{px,py, 0.0};
+
+//            return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         }
         lastTimestamp = data.getTimestamp();
 //        System.out.println(dt);
@@ -129,8 +135,18 @@ public class PositionCalculator {
 
         INDArray F = Nd4j.vstack(Nd4j.hstack(Nd4j.eye(2), Nd4j.zeros(2, 2)), Nd4j.hstack(Nd4j.eye(2).mul(dt), Nd4j.eye(2)));
         INDArray Q = QBase.mul(dt);
-        float[] a = subArray(accelerometerValues, accelerometerZeroValues);
-        float[] g = subArray(gyroscopeValues, gyroscopeZeroValues);
+//        float[] a = subArray(accelerometerValues, accelerometerZeroValues);
+//        float[] g = subArray(gyroscopeValues, gyroscopeZeroValues);
+                float[] a = accelerometerValues;
+        float[] g = gyroscopeValues;
+//
+//        System.out.println(a[0] + "  \t"
+//                + a[1] + "  \t"
+//                + subArray(accelerometerValues, accelerometerZeroValues)[0] + "  \t"
+//                + subArray(accelerometerValues, accelerometerZeroValues)[1] + "  \t"
+//        );
+
+
 
         INDArray a_k = Nd4j.create(a).transpose();
         INDArray g_k = Nd4j.create(g).transpose();
@@ -144,6 +160,13 @@ public class PositionCalculator {
         double ax = a_nav.getDouble(0);
         double ay = a_nav.getDouble(1);
         double az = a_nav.getDouble(2);
+//        double ax = a[0];
+//        double ay = a[1];
+//        double az = a[2];
+//        vx += ax * dt;
+//        vy += ay * dt;
+        
+
 
 
         INDArray x = F.mmul(previousX).addColumnVector(Nd4j.create(new double[]{dt * ax, dt * ay, 0, 0}));
@@ -175,6 +198,8 @@ public class PositionCalculator {
 
         }
         if (isZupt()) {
+            vx = 0;
+            vy = 0;
             INDArray K = P.mmul(H_vel.transpose()).mmul(inverse(H_vel.mmul(P).mmul(H_vel.transpose()).add(R)));
             P = (Nd4j.eye(4).sub(K.mmul(H_vel))).mmul(P);
             P = P.add(P.transpose()).div(2.0);
@@ -183,14 +208,24 @@ public class PositionCalculator {
             x = x.add(K.mmul(yk));
         }
         previousX = x;
-		System.out.println(accelerometerValues[0] + "\t\t"
-                + accelerometerValues[1] + "\t\t"
-                + accelerometerValues[2] + "\t\t"
-                + x.getDouble(0) + "\t\t"
-                + x.getDouble(1) + "\t\t"
-                + x.getDouble(2) + "\t\t"
-                + x.getDouble(3));
 
+
+//        px += vx * dt;
+//        py += vy * dt;
+//		System.out.println(ax + "  \t"
+//                + ay + "  \t"
+//                + az + "  \t"
+//                + x.getDouble(0) + "  \t"
+//                + x.getDouble(1) + "  \t"
+//                + x.getDouble(2) + "  \t"
+//                + x.getDouble(3) + "  \t"
+//                + dt + "  \t"
+//                + vx + "  \t"
+//                + vy + "  \t"
+//                + px + "  \t"
+//                + py
+//        );
+//        return new double[]{px,py, 0.0};
         return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
 
     }

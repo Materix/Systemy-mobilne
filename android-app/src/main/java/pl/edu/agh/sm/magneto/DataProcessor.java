@@ -11,6 +11,8 @@ class DataProcessor {
     private float[] gyroscopeValues = new float[3];
     private float[] magnetometerValues = new float[3];
 
+    private long lastTimestamp;
+
     private BlockingQueue<PositionData> queue;
 
     DataProcessor(BlockingQueue<PositionData> queue) {
@@ -27,8 +29,12 @@ class DataProcessor {
             System.arraycopy(sensorValues, 0, magnetometerValues, 0, magnetometerValues.length);
         }
 
-        PositionData data = new PositionData(accelerometerValues, gyroscopeValues, magnetometerValues,timestamp);
-        publishState(data);
+        if (timestamp > lastTimestamp) {
+            PositionData data = new PositionData(accelerometerValues, gyroscopeValues, magnetometerValues,timestamp);
+            publishState(data);
+            lastTimestamp = timestamp;
+        }
+
     }
 
     private void publishState(PositionData data) {
