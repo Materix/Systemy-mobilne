@@ -25,7 +25,7 @@ import java.util.function.Function;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
 public class PositionCalculator {
-    private static final double[] START_POSITION = new double[]{0, 0, 0};
+    private static final double[] START_POSITION = new double[]{1, 1, 0};
     private static final int FINISH_CALIBRATING_STEP = 100;
     private static final double ZUPT_THRESHOLD = 0.00001;
     private static final int ZUPT_WINDOW_SIZE = 25;
@@ -168,11 +168,6 @@ public class PositionCalculator {
             INDArray dx = K.mmul(yk);
 
             x = x.addColumnVector(dx);
-
-
-//			x.put(2, 0, zk.getDouble(0, 0));
-//			x.put(3, 0, zk.getDouble(1, 0));
-
         }
         if (isZupt()) {
             INDArray K = P.mmul(H_vel.transpose()).mmul(inverse(H_vel.mmul(P).mmul(H_vel.transpose()).add(R)));
@@ -285,30 +280,56 @@ public class PositionCalculator {
         double[] startPosition = new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         double x = startPosition[0];
         double y = startPosition[1];
-        double z = startPosition[2];
-        double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
+        double z = startPosition[2]; // Always 0
+//        double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
 
-
-        return new double[]{
-                avg[0] * denominator / (3 * z * y),
-                avg[1] * denominator / (3 * z * x),
-                avg[2] * denominator / (2 * (x * x - y * y) - z * z)
+//        double x = vector[0];
+//        double y = vector[1];
+//        double z = vector[2]; // Always 0
+        double r = calculateLength(startPosition);
+        double r3 = Math.pow(r, 3);
+//        double r5 = Math.pow(r, 5);
+//        INDArray tMatrix = Nd4j.create(new double[][]{
+//                {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 0},
+//                {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 0},
+//                {0, 0, -1 / r3}
+//        });
+        return new double[] {
+                (r3 * (avg[0] * (r * r - 3 * y * y) + 3 * avg[1] * x * y)) / (3 * x*x + 3 * y*y - r * r),
+                (r3 * (3 * avg[0] * x * y + avg[1] * (r*r - 3 * x * x))) / (3 * x*x + 3 * y*y - r * r),
+                -avg[2] * r3
         };
+//        return toArray(miColumnVector.mmul(tMatrix).transpose())[0];
+//        return new double[]{
+//                avg[0] * denominator / (3 * z * y),
+//                avg[1] * denominator / (3 * z * x),
+//                avg[2] * denominator / (2 * (x * x - y * y) - z * z)
+//        };
     }
 
     private Function<double[], double[]> createInterpolant(double[] mi) {
         double miLength = calculateLength(mi);
+        INDArray miColumnVector = Nd4j.create(mi);
         return vector -> {
             double x = vector[0];
             double y = vector[1];
-            double z = vector[2];
-            double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
+            double z = vector[2]; // Always 0
+            double r = calculateLength(vector);
+            double r3 = Math.pow(r, 3);
+            double r5 = Math.pow(r, 5);
+//            double denominator = Math.pow(x * x + y * y + z * z, 2);
+            INDArray tMatrix = Nd4j.create(new double[][]{
+                    {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 0},
+                    {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 0},
+                    {0, 0, -1 / r3}
+            });
+            return toArray(miColumnVector.mmul(tMatrix))[0];
 
-            return new double[]{
-                    3 * miLength * z * y / denominator,
-                    3 * miLength * z * x / denominator,
-                    miLength * (2 * (x * x - y * y) - z * z) / denominator
-            };
+//            return new double[]{
+//                    3 * miLength * z * y / denominator,
+//                    3 * miLength * z * x / denominator,
+//                    miLength * (2 * (x * x - y * y) - z * z) / denominator
+//            };
         };
 
     }
@@ -346,3 +367,4 @@ public class PositionCalculator {
     }
 
 }
+
