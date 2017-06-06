@@ -26,13 +26,13 @@ import pl.edu.agh.sm.magneto.commons.PositionData;
 
 public class PositionCalculator {
     private static final double[] START_POSITION = new double[]{1, 0};
-    private static final int FINISH_CALIBRATING_STEP = 3;
+    private static final int FINISH_CALIBRATING_STEP = 30;
     private static final double ZUPT_THRESHOLD = 0.00001;
-    private static final int ZUPT_WINDOW_SIZE = 3;
+    private static final int ZUPT_WINDOW_SIZE = 30;
     private static final float ALPHA = 0.25f;
 
     private INDArray p_0;
-    private INDArray F;
+//    private INDArray F;
     private INDArray P;
     private INDArray C;
     private double mi;
@@ -44,7 +44,7 @@ public class PositionCalculator {
 
     private int k;
     private double dt;
-    private INDArray Q;
+    private INDArray QBase;
     private INDArray R;
     private INDArray H_pos;
     private INDArray H_vel;
@@ -101,7 +101,7 @@ public class PositionCalculator {
             joiner.add(Float.toString(v));
         }
 //        joiner.add(Long.toString(data.getTimestamp()));
-		System.out.println(joiner);
+//		System.out.println(joiner);
 
         dt = (data.getTimestamp() - lastTimestamp) / 1000000000.0;
         if (dt <= 0 && dt > 1) {
@@ -127,7 +127,8 @@ public class PositionCalculator {
             return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         }
 
-
+        INDArray F = Nd4j.vstack(Nd4j.hstack(Nd4j.eye(2), Nd4j.zeros(2, 2)), Nd4j.hstack(Nd4j.eye(2).mul(dt), Nd4j.eye(2)));
+        INDArray Q = QBase.mul(dt);
         float[] a = subArray(accelerometerValues, accelerometerZeroValues);
         float[] g = subArray(gyroscopeValues, gyroscopeZeroValues);
 
@@ -169,8 +170,8 @@ public class PositionCalculator {
 
             x = x.addColumnVector(dx);
 
-            x.put(2, 0, zk.getDouble(0, 0));
-            x.put(3, 0, zk.getDouble(1, 0));
+//            x.put(2, 0, zk.getDouble(0, 0));
+//            x.put(3, 0, zk.getDouble(1, 0));
 
         }
         if (isZupt()) {
@@ -182,7 +183,13 @@ public class PositionCalculator {
             x = x.add(K.mmul(yk));
         }
         previousX = x;
-//		System.out.println(accelerometerValues[0] + ";" + accelerometerValues[1] + ";" +accelerometerValues[2] + ";" +x.getDouble(0) + ";" + x.getDouble(1) + ";" + x.getDouble(2) + ";" + x.getDouble(3));
+		System.out.println(accelerometerValues[0] + "\t\t"
+                + accelerometerValues[1] + "\t\t"
+                + accelerometerValues[2] + "\t\t"
+                + x.getDouble(0) + "\t\t"
+                + x.getDouble(1) + "\t\t"
+                + x.getDouble(2) + "\t\t"
+                + x.getDouble(3));
 
         return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
 
@@ -235,12 +242,11 @@ public class PositionCalculator {
 
     private void finishCalibration() {
         System.out.println("Calibration finished");
-        F = Nd4j.vstack(Nd4j.hstack(Nd4j.eye(2), Nd4j.zeros(2, 2)), Nd4j.hstack(Nd4j.eye(2).mul(dt), Nd4j.eye(2)));
         P = Nd4j.zeros(4, 4);
         double kq_v = 0.0001;
         double kq_p = 0.01;
         double kr = 0.000001;
-        Q = Nd4j.diag(Nd4j.create(new double[]{kq_v, kq_v, kq_p, kq_p})).mul(dt);
+        QBase = Nd4j.diag(Nd4j.create(new double[]{kq_v, kq_v, kq_p, kq_p}));//.mul(dt);
         R = Nd4j.diag(Nd4j.create(new double[]{1.0, 1.0})).mul(kr);
         C = Nd4j.eye(3);
 
@@ -301,7 +307,7 @@ public class PositionCalculator {
         return new double[] {
                 (r3 * (avg[0] * (r * r - 3 * y * y) + 3 * avg[1] * x * y)) / (3 * x*x + 3 * y*y - r * r),
                 (r3 * (3 * avg[0] * x * y + avg[1] * (r*r - 3 * x * x))) / (3 * x*x + 3 * y*y - r * r),
-                -avg[2] * r3
+//                -avg[2] * r3
         };
 //        return toArray(miColumnVector.mmul(tMatrix).transpose())[0];
 //        return new double[]{
@@ -325,7 +331,7 @@ public class PositionCalculator {
             INDArray tMatrix = Nd4j.create(new double[][]{
                     {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 0},
                     {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 0},
-                    {0, 0, -1 / r3}
+//                    {0, 0, -1 / r3}
             });
 
 //            StringJoiner joiner = new StringJoiner(";");
@@ -350,8 +356,8 @@ public class PositionCalculator {
         for (int i = 0; i < input.length; i++) {
             output[i] = output[i] + ALPHA * (input[i] - output[i]);
         }
-//		return output;
-        return input;
+		return output;
+//        return input;
     }
 
     private enum State {
@@ -370,7 +376,7 @@ public class PositionCalculator {
         @Override
         public double value(double[] point) {
             double[] modeledValue = interpolant.apply(point);
-            double first = calculateLength(new double[]{modeledValue[0] - measuredValue[0], modeledValue[1] - measuredValue[1], modeledValue[2] - measuredValue[2]});
+            double first = calculateLength(new double[]{modeledValue[0] - measuredValue[0], modeledValue[1] - measuredValue[1]/*, modeledValue[2] - measuredValue[2]*/});
             double second = calculateLength(modeledValue) - calculateLength(measuredValue);
 
             StringJoiner joiner = new StringJoiner(";");
