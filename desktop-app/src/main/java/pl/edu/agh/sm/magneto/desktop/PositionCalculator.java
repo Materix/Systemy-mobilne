@@ -25,10 +25,10 @@ import java.util.function.Function;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
 public class PositionCalculator {
-    private static final double[] START_POSITION = new double[]{1, 1, 0};
-    private static final int FINISH_CALIBRATING_STEP = 100;
+    private static final double[] START_POSITION = new double[]{1, 0};
+    private static final int FINISH_CALIBRATING_STEP = 3;
     private static final double ZUPT_THRESHOLD = 0.00001;
-    private static final int ZUPT_WINDOW_SIZE = 25;
+    private static final int ZUPT_WINDOW_SIZE = 3;
     private static final float ALPHA = 0.25f;
 
     private INDArray p_0;
@@ -159,7 +159,7 @@ public class PositionCalculator {
         if (calculateLength(magnetometerValues) > 0) {
             double xPos = x.getDouble(2, 0);
             double yPos = x.getDouble(3, 0);
-            INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos, 0}, magnetometerValues, interpolant)).transpose(); //<----mag correction (interpolant)
+            INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos}, magnetometerValues, interpolant)).transpose(); //<----mag correction (interpolant)
 
             INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
             P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
@@ -168,6 +168,10 @@ public class PositionCalculator {
             INDArray dx = K.mmul(yk);
 
             x = x.addColumnVector(dx);
+
+            x.put(2, 0, zk.getDouble(0, 0));
+            x.put(3, 0, zk.getDouble(1, 0));
+
         }
         if (isZupt()) {
             INDArray K = P.mmul(H_vel.transpose()).mmul(inverse(H_vel.mmul(P).mmul(H_vel.transpose()).add(R)));
@@ -199,7 +203,7 @@ public class PositionCalculator {
     }
 
     private double[][] correct_pos(double[] p_tmp, float[] m_c, Function<double[], double[]> interpolant) {
-        NelderMeadSimplex simplex = new NelderMeadSimplex(new double[]{0.01, 0.01, 0.01});
+        NelderMeadSimplex simplex = new NelderMeadSimplex(new double[]{0.01, 0.01});
         try {
             SimplexOptimizer optimizer = new SimplexOptimizer(new SimpleValueChecker(1e-3, 1e-6, 10000));
             PointValuePair a = optimizer.optimize(new MaxEval(1000000),
@@ -280,7 +284,7 @@ public class PositionCalculator {
         double[] startPosition = new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         double x = startPosition[0];
         double y = startPosition[1];
-        double z = startPosition[2]; // Always 0
+//        double z = startPosition[2]; // Always 0
 //        double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
 
 //        double x = vector[0];
@@ -313,7 +317,7 @@ public class PositionCalculator {
         return vector -> {
             double x = vector[0];
             double y = vector[1];
-            double z = vector[2]; // Always 0
+//            double z = vector[2]; // Always 0
             double r = calculateLength(vector);
             double r3 = Math.pow(r, 3);
             double r5 = Math.pow(r, 5);
@@ -323,6 +327,13 @@ public class PositionCalculator {
                     {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 0},
                     {0, 0, -1 / r3}
             });
+
+//            StringJoiner joiner = new StringJoiner(";");
+//            for (double v :  toArray(miColumnVector.mmul(tMatrix))[0]) {
+//                joiner.add(Double.toString(v));
+//            }
+//            System.out.println(joiner);
+
             return toArray(miColumnVector.mmul(tMatrix))[0];
 
 //            return new double[]{
@@ -361,7 +372,19 @@ public class PositionCalculator {
             double[] modeledValue = interpolant.apply(point);
             double first = calculateLength(new double[]{modeledValue[0] - measuredValue[0], modeledValue[1] - measuredValue[1], modeledValue[2] - measuredValue[2]});
             double second = calculateLength(modeledValue) - calculateLength(measuredValue);
-//			System.out.println(first * first + second * second);
+
+            StringJoiner joiner = new StringJoiner(";");
+            for (double v : point) {
+                joiner.add(Double.toString(v));
+            }
+            for (double v : measuredValue) {
+                joiner.add(Double.toString(v));
+            }
+            for (double v : modeledValue) {
+                joiner.add(Double.toString(v));
+            }
+            joiner.add(Double.toString(first * first + second * second));
+            System.out.println(joiner);
             return first * first + second * second;
         }
     }
