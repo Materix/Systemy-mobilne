@@ -91,24 +91,24 @@ public class PositionCalculator {
             return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         }
         StringJoiner joiner = new StringJoiner(";");
-        for (float v : data.getGyroscope()) {
-            joiner.add(Float.toString(v));
-        }
-        for (float v : data.getAccelerometer()) {
-            joiner.add(Float.toString(v));
-        }
+//        for (float v : data.getGyroscope()) {
+//            joiner.add(Float.toString(v));
+//        }
+//        for (float v : data.getAccelerometer()) {
+//            joiner.add(Float.toString(v));
+//        }
         for (float v : data.getMagnetometer()) {
             joiner.add(Float.toString(v));
         }
-        joiner.add(Long.toString(data.getTimestamp()));
-//		System.out.println(joiner);
+//        joiner.add(Long.toString(data.getTimestamp()));
+		System.out.println(joiner);
 
         dt = (data.getTimestamp() - lastTimestamp) / 1000000000.0;
         if (dt <= 0 && dt > 1) {
             return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         }
         lastTimestamp = data.getTimestamp();
-        System.out.println(dt);
+//        System.out.println(dt);
 
         magnetometerValues = lowPassFilter(data.getMagnetometer(), magnetometerValues);
         accelerometerValues = lowPassFilter(data.getAccelerometer(), accelerometerValues);
@@ -148,7 +148,7 @@ public class PositionCalculator {
         INDArray x = F.mmul(previousX).addColumnVector(Nd4j.create(new double[]{dt * ax, dt * ay, 0, 0}));
 //		x = previousX;
 
-        System.out.println(ax + " \t" + ay + " \t" + az + " \t" + x.getDouble(0) + " \t" + x.getDouble(1) + " \t" + x.getDouble(2) + " \t" + x.getDouble(3));
+//        System.out.println(ax + " \t" + ay + " \t" + az + " \t" + x.getDouble(0) + " \t" + x.getDouble(1) + " \t" + x.getDouble(2) + " \t" + x.getDouble(3));
 
 //		INDArray v = Nd4j.create(new double[]{ax, ay}).mul(dt).add(x.getRow(0).getColumns(0, 1));
 //		INDArray p = v.mul(dt).add(x.getRow(0).getColumns(2, 3));
@@ -229,7 +229,7 @@ public class PositionCalculator {
         sum = 0;
         for (double a : zuptWindow)
             sum += (a - mean) * (a - mean);
-        System.out.println((sum / zuptWindow.size()) + " " + (sum / zuptWindow.size() < ZUPT_THRESHOLD));
+//        System.out.println((sum / zuptWindow.size()) + " " + (sum / zuptWindow.size() < ZUPT_THRESHOLD));
         return sum / zuptWindow.size() < ZUPT_THRESHOLD;
     }
 
@@ -384,7 +384,7 @@ public class PositionCalculator {
                 joiner.add(Double.toString(v));
             }
             joiner.add(Double.toString(first * first + second * second));
-            System.out.println(joiner);
+//            System.out.println(joiner);
             return first * first + second * second;
         }
     }
