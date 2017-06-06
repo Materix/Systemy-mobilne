@@ -104,7 +104,7 @@ public class PositionCalculator {
 //		System.out.println(joiner);
 
         dt = (data.getTimestamp() - lastTimestamp) / 1000000000.0;
-        if (dt <= 0 && dt > 1) {
+        if (dt <= 0 || dt > 1) {
             return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         }
         lastTimestamp = data.getTimestamp();
