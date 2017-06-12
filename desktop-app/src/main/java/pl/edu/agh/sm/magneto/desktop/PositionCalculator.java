@@ -29,7 +29,7 @@ import pl.edu.agh.sm.magneto.commons.PositionData;
 public class PositionCalculator {
     private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("##0.000000");
 
-    private static final double[] START_POSITION = new double[]{0, 0};
+    private static final double[] START_POSITION = new double[]{0.15, 0, 0};
     private static final int FINISH_CALIBRATING_STEP = 30;
     private static final double ZUPT_THRESHOLD = 0.00001;
     private static final int ZUPT_WINDOW_SIZE = 5;
@@ -64,15 +64,11 @@ public class PositionCalculator {
     private float[] accelerometerZeroValues;
     private float[] gyroscopeZeroValues;
     private long lastTimestamp;
-    private double vx = 0;
-    private double vy = 0;
-    private double px = START_POSITION[0];
-    private double py = START_POSITION[1];
+    private double zPos = START_POSITION[2];
 
 
     public PositionCalculator() {
         NUMBER_FORMAT.setPositivePrefix(" ");
-        p_0 = Nd4j.create(new double[]{0, 0}); // start position
         k = 0;
         state = State.CALIBRATING;
         zuptWindow = EvictingQueue.create(ZUPT_WINDOW_SIZE);
@@ -119,10 +115,9 @@ public class PositionCalculator {
 //                .add(Long.toString(data.getTimestamp() - lastTimestamp))
 //                .add(Double.toString(dt))
 //        );
-        if (dt <= 0 || dt > 1) {
-            return new double[]{px,py, 0.0};
-
-//            return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
+        if (dt <= 0/* || dt > 1*/) {
+            // Restart calibration? or reset velocity?
+            return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
         }
         lastTimestamp = data.getTimestamp();
 //        System.out.println(dt);
@@ -176,19 +171,21 @@ public class PositionCalculator {
         if (calculateLength(magnetometerValues) > 0) {
             double xPos = x.getDouble(2, 0);
             double yPos = x.getDouble(3, 0);
-            INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos}, magnetometerValues, interpolant)).transpose(); //<----mag correction (interpolant)
+            INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos, zPos}, magnetometerValues, interpolant)).transpose(); //<----mag correction (interpolant)
 
-            INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
-            P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
-            P = P.add(P.transpose()).div(2.0);
-            INDArray yk = H_pos.mmul(x).subRowVector(zk).mul(-1);
-            INDArray dx = K.mmul(yk);
+//            INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
+//            P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
+//            P = P.add(P.transpose()).div(2.0);
+//            INDArray yk = H_pos.mmul(x).subRowVector(zk).mul(-1);
+//            INDArray dx = K.mmul(yk);
+//
+//            x = x.addColumnVector(dx);
 
-            x = x.addColumnVector(dx);
+            x = Nd4j.create(new double[][] {{0},{0},{zk.getDouble(0)}, {zk.getDouble(1)}});
+            zPos = zk.getDouble(2);
         }
-        if (isZupt()) {
-            vx = 0;
-            vy = 0;
+//        if (isZupt()) {
+        if (false) {
             INDArray K = P.mmul(H_vel.transpose()).mmul(inverse(H_vel.mmul(P).mmul(H_vel.transpose()).add(R)));
             P = (Nd4j.eye(4).sub(K.mmul(H_vel))).mmul(P);
             P = P.add(P.transpose()).div(2.0);
@@ -197,13 +194,13 @@ public class PositionCalculator {
             x = x.add(K.mmul(yk));
         }
         previousX = x;
-
+//
         System.out.println(new StringJoiner("\t")
                 .add(NUMBER_FORMAT.format(dt))
-                .add(NUMBER_FORMAT.format(ax))
-                .add(NUMBER_FORMAT.format(ay))
-                .add(NUMBER_FORMAT.format(x.getDouble(0)))
-                .add(NUMBER_FORMAT.format(x.getDouble(1)))
+//                .add(NUMBER_FORMAT.format(ax))
+//                .add(NUMBER_FORMAT.format(ay))
+//                .add(NUMBER_FORMAT.format(x.getDouble(0)))
+//                .add(NUMBER_FORMAT.format(x.getDouble(1)))
                 .add(NUMBER_FORMAT.format(x.getDouble(2)))
                 .add(NUMBER_FORMAT.format(x.getDouble(3)))
         );
@@ -226,7 +223,7 @@ public class PositionCalculator {
     }
 
     private double[][] correct_pos(double[] p_tmp, float[] m_c, Function<double[], double[]> interpolant) {
-        NelderMeadSimplex simplex = new NelderMeadSimplex(new double[]{0.01, 0.01});
+        NelderMeadSimplex simplex = new NelderMeadSimplex(new double[]{0.01, 0.01, 0.01});
         try {
             SimplexOptimizer optimizer = new SimplexOptimizer(new SimpleValueChecker(1e-3, 1e-6, 10000));
             PointValuePair a = optimizer.optimize(new MaxEval(1000000),
@@ -234,11 +231,11 @@ public class PositionCalculator {
                     GoalType.MINIMIZE,
                     new InitialGuess(p_tmp),
                     simplex);
-            return new double[][]{{a.getPoint()[0]}, {a.getPoint()[1]}};
+            return new double[][]{{a.getPoint()[0]}, {a.getPoint()[1]}, {a.getPoint()[2]}};
         } catch (TooManyEvaluationsException e) {
             e.printStackTrace();
             PointValuePair a = simplex.getPoint(0);
-            return new double[][]{{a.getPoint()[0]}, {a.getPoint()[1]}};
+            return new double[][]{{a.getPoint()[0]}, {a.getPoint()[1]}, {a.getPoint()[2]}};
 //            return new double[][]{{p_tmp[0]}, {p_tmp[1]}};
         }
     }
@@ -303,28 +300,48 @@ public class PositionCalculator {
     private double[] calculateMi() {
         float[] avg = avgArray(magnetometerCalibratingData);
 
-        double[] startPosition = new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
-        double x = startPosition[0];
-        double y = startPosition[1];
-//        double z = startPosition[2]; // Always 0
-//        double denominator = Math.pow(x * x + y * y + z * z, 5 / 2);
+        double[] startPosition = new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), zPos};
+        NelderMeadSimplex simplex = new NelderMeadSimplex(new double[]{0.01, 0.01, 0.01});
+        SimplexOptimizer optimizer = new SimplexOptimizer(new SimpleValueChecker(1e-3, 1e-6, 10000));
+        PointValuePair a = optimizer.optimize(new MaxEval(1000000),
+                new ObjectiveFunction(vector -> {
+                    double x = startPosition[0];
+                    double y = startPosition[1];
+                    double z = startPosition[2];
+                    double r = calculateLength(vector);
+                    double r3 = Math.pow(r, 3);
+                    double r5 = Math.pow(r, 5);
+                    INDArray tMatrix = Nd4j.create(new double[][]{
+                            {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 3 * x * z / r5},
+                            {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 3 * y * z / r5},
+                            {3 * x * z / r5, 3 * y * z / r5, 3 * z * z / r5 -1 / r3}
+                    });
+                    INDArray miColumnVector = Nd4j.create(vector).transpose();
 
-//        double x = vector[0];
-//        double y = vector[1];
-//        double z = vector[2]; // Always 0
-        double r = calculateLength(startPosition);
-        double r3 = Math.pow(r, 3);
-//        double r5 = Math.pow(r, 5);
-//        INDArray tMatrix = Nd4j.create(new double[][]{
-//                {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 0},
-//                {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 0},
-//                {0, 0, -1 / r3}
-//        });
-        return new double[] {
-                (r3 * (avg[0] * (r * r - 3 * y * y) + 3 * avg[1] * x * y)) / (3 * x*x + 3 * y*y - r * r),
-                (r3 * (3 * avg[0] * x * y + avg[1] * (r*r - 3 * x * x))) / (3 * x*x + 3 * y*y - r * r),
+                    double[] modeledValue = toArray(miColumnVector.mmul(tMatrix))[0];
+                    double first = calculateLength(new double[]{modeledValue[0] - avg[0], modeledValue[1] - avg[1], modeledValue[2] - avg[2]});
+                    double second = calculateLength(modeledValue) - calculateLength(avg);
+                    return first * first + second * second;
+                }),
+                GoalType.MINIMIZE,
+                new InitialGuess(startPosition),
+                simplex);
+        return a.getPoint();
+
+//
+//        double r = calculateLength(startPosition);
+//        double r3 = Math.pow(r, 3);
+////        double r5 = Math.pow(r, 5);
+////        INDArray tMatrix = Nd4j.create(new double[][]{
+////                {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 0},
+////                {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 0},
+////                {0, 0, -1 / r3}
+////        });
+//        return new double[] {
+//                (r3 * (avg[0] * (r * r - 3 * y * y) + 3 * avg[1] * x * y)) / (3 * x*x + 3 * y*y - r * r),
+//                (r3 * (3 * avg[0] * x * y + avg[1] * (r*r - 3 * x * x))) / (3 * x*x + 3 * y*y - r * r),
 //                -avg[2] * r3
-        };
+//        };
 //        return toArray(miColumnVector.mmul(tMatrix).transpose())[0];
 //        return new double[]{
 //                avg[0] * denominator / (3 * z * y),
@@ -339,15 +356,14 @@ public class PositionCalculator {
         return vector -> {
             double x = vector[0];
             double y = vector[1];
-//            double z = vector[2]; // Always 0
+            double z = vector[2];
             double r = calculateLength(vector);
             double r3 = Math.pow(r, 3);
             double r5 = Math.pow(r, 5);
-//            double denominator = Math.pow(x * x + y * y + z * z, 2);
             INDArray tMatrix = Nd4j.create(new double[][]{
-                    {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 0},
-                    {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 0},
-//                    {0, 0, -1 / r3}
+                    {3 * x * x / r5 - 1 / r3, 3 * x * y / r5, 3 * x * z / r5},
+                    {3 * x * y / r5, 3 * y * y / r5 - 1 / r3, 3 * y * z / r5},
+                    {3 * x * z / r5, 3 * y * z / r5, 3 * z * z / r5 -1 / r3}
             });
 
 //            StringJoiner joiner = new StringJoiner(";");
@@ -392,7 +408,7 @@ public class PositionCalculator {
         @Override
         public double value(double[] point) {
             double[] modeledValue = interpolant.apply(point);
-            double first = calculateLength(new double[]{modeledValue[0] - measuredValue[0], modeledValue[1] - measuredValue[1]/*, modeledValue[2] - measuredValue[2]*/});
+            double first = calculateLength(new double[]{modeledValue[0] - measuredValue[0], modeledValue[1] - measuredValue[1], modeledValue[2] - measuredValue[2]});
             double second = calculateLength(modeledValue) - calculateLength(measuredValue);
 
             StringJoiner joiner = new StringJoiner(";");
