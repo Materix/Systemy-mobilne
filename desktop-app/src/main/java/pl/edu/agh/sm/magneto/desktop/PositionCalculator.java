@@ -17,6 +17,8 @@ import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringJoiner;
@@ -25,6 +27,8 @@ import java.util.function.Function;
 import pl.edu.agh.sm.magneto.commons.PositionData;
 
 public class PositionCalculator {
+    private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("##0.000000");
+
     private static final double[] START_POSITION = new double[]{0, 0};
     private static final int FINISH_CALIBRATING_STEP = 30;
     private static final double ZUPT_THRESHOLD = 0.00001;
@@ -67,6 +71,7 @@ public class PositionCalculator {
 
 
     public PositionCalculator() {
+        NUMBER_FORMAT.setPositivePrefix(" ");
         p_0 = Nd4j.create(new double[]{0, 0}); // start position
         k = 0;
         state = State.CALIBRATING;
@@ -108,6 +113,12 @@ public class PositionCalculator {
 //		System.out.println(joiner);
 
         dt = (data.getTimestamp() - lastTimestamp) / 1000000000.0;
+//        System.out.println(new StringJoiner("\t")
+//                .add(Long.toString(data.getTimestamp()))
+//                .add(Long.toString(lastTimestamp))
+//                .add(Long.toString(data.getTimestamp() - lastTimestamp))
+//                .add(Double.toString(dt))
+//        );
         if (dt <= 0 || dt > 1) {
             return new double[]{px,py, 0.0};
 
@@ -135,18 +146,8 @@ public class PositionCalculator {
 
         INDArray F = Nd4j.vstack(Nd4j.hstack(Nd4j.eye(2), Nd4j.zeros(2, 2)), Nd4j.hstack(Nd4j.eye(2).mul(dt), Nd4j.eye(2)));
         INDArray Q = QBase.mul(dt);
-//        float[] a = subArray(accelerometerValues, accelerometerZeroValues);
-//        float[] g = subArray(gyroscopeValues, gyroscopeZeroValues);
-                float[] a = accelerometerValues;
+        float[] a = accelerometerValues;
         float[] g = gyroscopeValues;
-//
-//        System.out.println(a[0] + "  \t"
-//                + a[1] + "  \t"
-//                + subArray(accelerometerValues, accelerometerZeroValues)[0] + "  \t"
-//                + subArray(accelerometerValues, accelerometerZeroValues)[1] + "  \t"
-//        );
-
-
 
         INDArray a_k = Nd4j.create(a).transpose();
         INDArray g_k = Nd4j.create(g).transpose();
@@ -155,31 +156,23 @@ public class PositionCalculator {
                 {g_k.getDouble(2), 0.0, -g_k.getDouble(0)},
                 {-g_k.getDouble(1), g_k.getDouble(0), 0.0}});
 
-        C = C.mmul((Nd4j.eye(3).mul(2.0).add(Omega.mul(dt))).mmul(inverse(Nd4j.eye(3).mul(2.0).sub(Omega.mul(dt)))));
+        C = C.mmul(Nd4j.eye(3)
+                       .mul(2.0)
+                       .add(Omega.mul(dt))
+                       .mmul(inverse(Nd4j.eye(3)
+                                         .mul(2.0)
+                                         .sub(Omega.mul(dt))
+                                    )
+                            )
+                  );
         INDArray a_nav = C.mmul(a_k);
         double ax = a_nav.getDouble(0);
         double ay = a_nav.getDouble(1);
         double az = a_nav.getDouble(2);
-//        double ax = a[0];
-//        double ay = a[1];
-//        double az = a[2];
-//        vx += ax * dt;
-//        vy += ay * dt;
-        
-
-
 
         INDArray x = F.mmul(previousX).addColumnVector(Nd4j.create(new double[]{dt * ax, dt * ay, 0, 0}));
-//		x = previousX;
-
-//        System.out.println(ax + " \t" + ay + " \t" + az + " \t" + x.getDouble(0) + " \t" + x.getDouble(1) + " \t" + x.getDouble(2) + " \t" + x.getDouble(3));
-
-//		INDArray v = Nd4j.create(new double[]{ax, ay}).mul(dt).add(x.getRow(0).getColumns(0, 1));
-//		INDArray p = v.mul(dt).add(x.getRow(0).getColumns(2, 3));
 
         P = F.mmul(P).mmul(F.transpose()).add(Q);
-//		if ((k % 2) == 0) {
-//		if (false) {
         if (calculateLength(magnetometerValues) > 0) {
             double xPos = x.getDouble(2, 0);
             double yPos = x.getDouble(3, 0);
@@ -192,10 +185,6 @@ public class PositionCalculator {
             INDArray dx = K.mmul(yk);
 
             x = x.addColumnVector(dx);
-
-//            x.put(2, 0, zk.getDouble(0, 0));
-//            x.put(3, 0, zk.getDouble(1, 0));
-
         }
         if (isZupt()) {
             vx = 0;
@@ -209,23 +198,15 @@ public class PositionCalculator {
         }
         previousX = x;
 
-
-//        px += vx * dt;
-//        py += vy * dt;
-//		System.out.println(ax + "  \t"
-//                + ay + "  \t"
-//                + az + "  \t"
-//                + x.getDouble(0) + "  \t"
-//                + x.getDouble(1) + "  \t"
-//                + x.getDouble(2) + "  \t"
-//                + x.getDouble(3) + "  \t"
-//                + dt + "  \t"
-//                + vx + "  \t"
-//                + vy + "  \t"
-//                + px + "  \t"
-//                + py
-//        );
-//        return new double[]{px,py, 0.0};
+        System.out.println(new StringJoiner("\t")
+                .add(NUMBER_FORMAT.format(dt))
+                .add(NUMBER_FORMAT.format(ax))
+                .add(NUMBER_FORMAT.format(ay))
+                .add(NUMBER_FORMAT.format(x.getDouble(0)))
+                .add(NUMBER_FORMAT.format(x.getDouble(1)))
+                .add(NUMBER_FORMAT.format(x.getDouble(2)))
+                .add(NUMBER_FORMAT.format(x.getDouble(3)))
+        );
         return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
 
     }
@@ -391,8 +372,8 @@ public class PositionCalculator {
         for (int i = 0; i < input.length; i++) {
             output[i] = output[i] + ALPHA * (input[i] - output[i]);
         }
-		return output;
-//        return input;
+//		return output;
+        return input;
     }
 
     private enum State {
