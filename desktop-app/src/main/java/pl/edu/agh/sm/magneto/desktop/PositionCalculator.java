@@ -203,19 +203,19 @@ public class PositionCalculator {
                     .add(NUMBER_FORMAT.format(m_nav.getDouble(2)))
             );
 
-//            INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
-//            P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
-//            P = P.add(P.transpose()).div(2.0);
-//            INDArray yk = H_pos.mmul(x).subRowVector(zk).mul(-1);
-//            INDArray dx = K.mmul(yk);
-//
-//            x = x.addColumnVector(dx);
+            INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
+            P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
+            P = P.add(P.transpose()).div(2.0);
+            INDArray yk = H_pos.mmul(x).subRowVector(zk).mul(-1);
+            INDArray dx = K.mmul(yk);
 
-            x = Nd4j.create(new double[][] {{0},{0},{zk.getDouble(0)}, {zk.getDouble(1)}});
+            x = x.addColumnVector(dx);
+
+//            x = Nd4j.create(new double[][] {{0},{0},{zk.getDouble(0)}, {zk.getDouble(1)}});
             zPos = zk.getDouble(2);
         }
-//        if (isZupt()) {
-        if (false) {
+        if (isZupt()) {
+//        if (false) {
             INDArray K = P.mmul(H_vel.transpose()).mmul(inverse(H_vel.mmul(P).mmul(H_vel.transpose()).add(R)));
             P = (Nd4j.eye(4).sub(K.mmul(H_vel))).mmul(P);
             P = P.add(P.transpose()).div(2.0);
