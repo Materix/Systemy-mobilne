@@ -194,24 +194,24 @@ public class PositionCalculator {
             double yPos = x.getDouble(3, 0);
             INDArray m_nav = C.mmul(Nd4j.create(magnetometerValues).transpose());
             INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos, zPos}, toArray(m_nav.transpose())[0], interpolant)).transpose(); //<----mag correction (interpolant)
-            System.out.println(new StringJoiner("\t")
-                    .add(NUMBER_FORMAT.format(magnetometerValues[0]))
-                    .add(NUMBER_FORMAT.format(magnetometerValues[1]))
-                    .add(NUMBER_FORMAT.format(magnetometerValues[2]))
-                    .add(NUMBER_FORMAT.format(m_nav.getDouble(0)))
-                    .add(NUMBER_FORMAT.format(m_nav.getDouble(1)))
-                    .add(NUMBER_FORMAT.format(m_nav.getDouble(2)))
-            );
+//            System.out.println(new StringJoiner("\t")
+//                    .add(NUMBER_FORMAT.format(magnetometerValues[0]))
+//                    .add(NUMBER_FORMAT.format(magnetometerValues[1]))
+//                    .add(NUMBER_FORMAT.format(magnetometerValues[2]))
+//                    .add(NUMBER_FORMAT.format(m_nav.getDouble(0)))
+//                    .add(NUMBER_FORMAT.format(m_nav.getDouble(1)))
+//                    .add(NUMBER_FORMAT.format(m_nav.getDouble(2)))
+//            );
+//
+//            INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
+//            P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
+//            P = P.add(P.transpose()).div(2.0);
+//            INDArray yk = H_pos.mmul(x).subRowVector(zk.getRows(0,1)).mul(-1);
+//            INDArray dx = K.mmul(yk);
+//
+//            x = x.addColumnVector(dx);
 
-            INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
-            P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
-            P = P.add(P.transpose()).div(2.0);
-            INDArray yk = H_pos.mmul(x).subRowVector(zk.getRows(0,1)).mul(-1);
-            INDArray dx = K.mmul(yk);
-
-            x = x.addColumnVector(dx);
-
-//            x = Nd4j.create(new double[][] {{0},{0},{zk.getDouble(0)}, {zk.getDouble(1)}});
+            x = Nd4j.create(new double[][] {{0},{0},{zk.getDouble(0)}, {zk.getDouble(1)}});
             zPos = zk.getDouble(2);
         }
         if (isZupt()) {
