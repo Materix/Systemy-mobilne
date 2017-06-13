@@ -25,7 +25,7 @@ import java.net.SocketException;
 import java.util.logging.Logger;
 
 public class DesktopRunner extends Application {
-	private static final double SCALE = 50;
+	private static final double SCALE = 500;
 	private static Logger logger = Logger.getLogger(DesktopRunner.class.getName());
 	final Group root = new Group();
 	final Group axisGroup = new Group();

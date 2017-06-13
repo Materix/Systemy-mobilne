@@ -160,6 +160,27 @@ public class PositionCalculator {
                                     )
                             )
                   );
+//        System.out.println("-----");
+//        System.out.println(new StringJoiner(System.lineSeparator())
+//                .add(new StringJoiner("\t")
+//                        .add(NUMBER_FORMAT.format(C.getDouble(0)))
+//                        .add(NUMBER_FORMAT.format(C.getDouble(1)))
+//                        .add(NUMBER_FORMAT.format(C.getDouble(2)))
+//                        .toString()
+//                )
+//                .add(new StringJoiner("\t")
+//                        .add(NUMBER_FORMAT.format(C.getDouble(3)))
+//                        .add(NUMBER_FORMAT.format(C.getDouble(4)))
+//                        .add(NUMBER_FORMAT.format(C.getDouble(5)))
+//                        .toString()
+//                )
+//                .add(new StringJoiner("\t")
+//                        .add(NUMBER_FORMAT.format(C.getDouble(6)))
+//                        .add(NUMBER_FORMAT.format(C.getDouble(7)))
+//                        .add(NUMBER_FORMAT.format(C.getDouble(8)))
+//                        .toString()
+//                )
+//        );
         INDArray a_nav = C.mmul(a_k);
         double ax = a_nav.getDouble(0);
         double ay = a_nav.getDouble(1);
@@ -171,7 +192,16 @@ public class PositionCalculator {
         if (calculateLength(magnetometerValues) > 0) {
             double xPos = x.getDouble(2, 0);
             double yPos = x.getDouble(3, 0);
-            INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos, zPos}, magnetometerValues, interpolant)).transpose(); //<----mag correction (interpolant)
+            INDArray m_nav = C.mmul(Nd4j.create(magnetometerValues).transpose());
+            INDArray zk = Nd4j.create(correct_pos(new double[]{xPos, yPos, zPos}, toArray(m_nav.transpose())[0], interpolant)).transpose(); //<----mag correction (interpolant)
+            System.out.println(new StringJoiner("\t")
+                    .add(NUMBER_FORMAT.format(magnetometerValues[0]))
+                    .add(NUMBER_FORMAT.format(magnetometerValues[1]))
+                    .add(NUMBER_FORMAT.format(magnetometerValues[2]))
+                    .add(NUMBER_FORMAT.format(m_nav.getDouble(0)))
+                    .add(NUMBER_FORMAT.format(m_nav.getDouble(1)))
+                    .add(NUMBER_FORMAT.format(m_nav.getDouble(2)))
+            );
 
 //            INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
 //            P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
@@ -195,15 +225,15 @@ public class PositionCalculator {
         }
         previousX = x;
 //
-        System.out.println(new StringJoiner("\t")
-                .add(NUMBER_FORMAT.format(dt))
-//                .add(NUMBER_FORMAT.format(ax))
-//                .add(NUMBER_FORMAT.format(ay))
-//                .add(NUMBER_FORMAT.format(x.getDouble(0)))
-//                .add(NUMBER_FORMAT.format(x.getDouble(1)))
-                .add(NUMBER_FORMAT.format(x.getDouble(2)))
-                .add(NUMBER_FORMAT.format(x.getDouble(3)))
-        );
+//        System.out.println(new StringJoiner("\t")
+//                .add(NUMBER_FORMAT.format(dt))
+////                .add(NUMBER_FORMAT.format(ax))
+////                .add(NUMBER_FORMAT.format(ay))
+////                .add(NUMBER_FORMAT.format(x.getDouble(0)))
+////                .add(NUMBER_FORMAT.format(x.getDouble(1)))
+//                .add(NUMBER_FORMAT.format(x.getDouble(2)))
+//                .add(NUMBER_FORMAT.format(x.getDouble(3)))
+//        );
         return new double[]{previousX.getDouble(2, 0), previousX.getDouble(3, 0), 0.0};
 
     }
@@ -222,7 +252,7 @@ public class PositionCalculator {
         return result;
     }
 
-    private double[][] correct_pos(double[] p_tmp, float[] m_c, Function<double[], double[]> interpolant) {
+    private double[][] correct_pos(double[] p_tmp, double[] m_c, Function<double[], double[]> interpolant) {
         NelderMeadSimplex simplex = new NelderMeadSimplex(new double[]{0.01, 0.01, 0.01});
         try {
             SimplexOptimizer optimizer = new SimplexOptimizer(new SimpleValueChecker(1e-3, 1e-6, 10000));
@@ -398,9 +428,9 @@ public class PositionCalculator {
 
     private static class MagneticFieldModel implements MultivariateFunction {
         private Function<double[], double[]> interpolant;
-        private float[] measuredValue;
+        private double[] measuredValue;
 
-        MagneticFieldModel(Function<double[], double[]> interpolant, float[] measuredValue) {
+        MagneticFieldModel(Function<double[], double[]> interpolant, double[] measuredValue) {
             this.interpolant = interpolant;
             this.measuredValue = measuredValue;
         }
