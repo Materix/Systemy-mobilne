@@ -206,7 +206,7 @@ public class PositionCalculator {
             INDArray K = P.mmul(H_pos.transpose()).mmul(inverse(H_pos.mmul(P).mmul(H_pos.transpose()).add(R)));
             P = Nd4j.eye(4).sub(K.mmul(H_pos)).mmul(P);
             P = P.add(P.transpose()).div(2.0);
-            INDArray yk = H_pos.mmul(x).subRowVector(zk).mul(-1);
+            INDArray yk = H_pos.mmul(x).subRowVector(zk.getRows(0,1)).mul(-1);
             INDArray dx = K.mmul(yk);
 
             x = x.addColumnVector(dx);
